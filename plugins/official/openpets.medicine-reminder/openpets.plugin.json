@@ -1,0 +1,47 @@
+{
+  "manifestVersion": 3,
+  "id": "openpets.medicine-reminder",
+  "name": "$t:plugin.name",
+  "description": "$t:plugin.description",
+  "version": "0.1.0",
+  "runtime": "javascript",
+  "icon": "pill",
+  "sdkVersion": "3.0.0",
+  "entry": "index.js",
+  "assets": {
+    "icons": {
+      "pill": "assets/pill.svg"
+    }
+  },
+  "permissions": ["pet:speak", "pet:interact", "audio", "schedule", "storage", "commands", "notify"],
+  "configSchema": {
+    "medicineName": {
+      "type": "text",
+      "default": "$t:config.medicineName.default",
+      "label": "$t:config.medicineName.label",
+      "description": "$t:config.medicineName.description"
+    },
+    "doseTimes": {
+      "type": "text",
+      "default": "08:00, 20:00",
+      "label": "$t:config.doseTimes.label",
+      "description": "$t:config.doseTimes.description"
+    },
+    "snoozeMinutes": {
+      "type": "select",
+      "default": "10",
+      "label": "$t:config.snoozeMinutes.label",
+      "description": "$t:config.snoozeMinutes.description",
+      "options": [
+        { "value": "5", "label": "$t:config.snoozeMinutes.5" },
+        { "value": "10", "label": "$t:config.snoozeMinutes.10" },
+        { "value": "30", "label": "$t:config.snoozeMinutes.30" }
+      ]
+    },
+    "customSound": {
+      "type": "sound",
+      "label": "$t:config.customSound.label",
+      "description": "$t:config.customSound.description"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+appId: dev.kenpets.app
+productName: KenPets
+executableName: openpets
+protocols:
+  - name: OpenPets Teams enrollment
+    schemes:
+      - openpets
+copyright: Copyright © 2026 KenDev. Based on OpenPets, Copyright © 2026 OpenPets (MIT)
+
+directories:
+  output: dist-electron
+
+artifactName: KenPets-${version}-${os}-${arch}.${ext}
+
+files:
+  - dist/**
+  - control-center-preload.cjs
+  - pet-tts-helper.cjs
+  - plugin-sdk-preload.cjs
+  - plugin-command-form-preload.cjs
+  - panel-preload.cjs
+  - voice-realtime-preload.cjs
+  - assets/**
+  - package.json
+
+extraResources:
+  - from: ../../plugins/official
+    to: plugins/official
+
+asar: true
+asarUnpack:
+  - node_modules/**
+npmRebuild: false
+publish: null
+
+toolsets:
+  appimage: 1.0.3
+
+mac:
+  icon: assets/app-icon.icns
+  category: public.app-category.utilities
+  extendInfo:
+    NSMicrophoneUsageDescription: KenPets uses your microphone only for user-initiated one-shot input and realtime voice conversations.
+  target:
+    - dmg
+    - zip
+  # Ad-hoc sign macOS bundles when a Developer ID certificate is unavailable.
+  # Leaving the app bundle fully unsigned can produce Gatekeeper's misleading
+  # "damaged and can't be opened" dialog on Apple Silicon releases.
+  identity: "-"
+  hardenedRuntime: false
+  gatekeeperAssess: false
+
+win:
+  icon: assets/app-icon.ico
+  target:
+    - nsis
+  verifyUpdateCodeSignature: false
+
+nsis:
+  artifactName: KenPets-${version}-win-${arch}-setup.${ext}
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+linux:
+  icon: assets/app-icon.png
+  target:
+    - AppImage
+    - deb
+    - rpm
+    - tar.gz
+  category: Utility
+  maintainer: KenDev

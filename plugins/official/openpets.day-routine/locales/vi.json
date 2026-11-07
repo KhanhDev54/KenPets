@@ -1,0 +1,21 @@
+{
+  "plugin.name": "Chào sáng & tối",
+  "plugin.description": "Pet chào bạn lúc bắt đầu và kết thúc mỗi ngày.",
+  "config.morningTime.label": "Giờ chào sáng",
+  "config.morningTime.description": "Giờ địa phương để pet chào buổi sáng.",
+  "config.eveningTime.label": "Giờ chào tối",
+  "config.eveningTime.description": "Giờ địa phương để pet chào buổi tối.",
+  "config.enableMorning.label": "Bật chào sáng",
+  "config.enableMorning.description": "Chào buổi sáng mỗi ngày.",
+  "config.enableEvening.label": "Bật chào tối",
+  "config.enableEvening.description": "Chào buổi tối mỗi ngày.",
+  "command.morningNow.title": "Chào sáng ngay",
+  "command.morningNow.description": "Hiện lời chào buổi sáng hôm nay một lần.",
+  "command.eveningNow.title": "Chào tối ngay",
+  "command.eveningNow.description": "Hiện lời chào buổi tối hôm nay một lần.",
+  "command.pauseToday.title": "Tạm dừng hôm nay",
+  "command.pauseToday.description": "Không chào nữa cho đến ngày mai.",
+  "speech.morning": "Chào buổi sáng! Bắt đầu ngày mới nhẹ nhàng thôi nhé.",
+  "speech.evening": "Tối rồi. Gác lại việc hôm nay và nghỉ ngơi đi nào.",
+  "speech.paused": "Hôm nay tạm dừng nhé. Mai mình chào lại."
+}

@@ -1,0 +1,199 @@
+import { strict as assert } from "node:assert";
+import { test } from "node:test";
+import { createRequire } from "node:module";
+import { join, resolve } from "node:path";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { build } from "esbuild";
+import type * as vscode from "vscode";
+import { CompanionService } from "../src/host/companion-service.js";
+import { SurfaceCoordinator } from "../src/host/surface-coordinator.js";
+import { applySceneCommand, createDefaultScene } from "../src/host/scene-state.js";
+
+test("disposed sidebar request cannot close a replacement editor panel", async () => {
+  const storage = await mkdtemp(join(tmpdir(), "openpets-session-"));
+  let service: CompanionService | undefined;
+  const panels: Array<{
+    disposed: boolean;
+    listeners: Set<() => void>;
+    dispose(): void;
+  }> = [];
+  const vscodeMock = {
+    ViewColumn: { Beside: 2 },
+    Uri: {
+      joinPath: () => ({ toString: () => "resource" }),
+      file: (path: string) => ({ path }),
+    },
+    window: {
+      createWebviewPanel: () => {
+        const panel = {
+          disposed: false,
+          listeners: new Set<() => void>(),
+          visible: true,
+          webview: {},
+          viewColumn: 2,
+          reveal: () => {},
+          onDidChangeViewState: () => ({ dispose: () => {} }),
+          onDidDispose: (listener: () => void) => {
+            panel.listeners.add(listener);
+            return { dispose: () => panel.listeners.delete(listener) };
+          },
+          dispose: () => {
+            panel.disposed = true;
+            for (const listener of panel.listeners) listener();
+          },
+        };
+        panels.push(panel);
+        return panel;
+      },
+    },
+  };
+  Object.defineProperty(globalThis, "__openpetsVscode", {
+    configurable: true,
+    value: vscodeMock,
+  });
+  try {
+    const output = await build({
+      stdin: {
+        contents:
+          'export { WebviewSession } from "./src/host/webview-session.ts"; export { EditorPetPanel } from "./src/host/editor-panel.ts";',
+        resolveDir: process.cwd(),
+        loader: "ts",
+      },
+      bundle: true,
+      platform: "node",
+      format: "cjs",
+      write: false,
+      plugins: [
+        {
+          name: "vscode-test-boundary",
+          setup(builder) {
+            builder.onResolve({ filter: /^vscode$/ }, () => ({
+              path: "vscode",
+              namespace: "test",
+            }));
+            builder.onLoad({ filter: /.*/, namespace: "test" }, () => ({
+              contents: "module.exports = globalThis.__openpetsVscode",
+              loader: "js",
+            }));
+          },
+        },
+      ],
+    });
+    const module = { exports: {} };
+    const load = new Function(
+      "module",
+      "exports",
+      "require",
+      output.outputFiles[0].text,
+    );
+    load(module, module.exports, createRequire(resolve("package.json")));
+    const host = module.exports as {
+      WebviewSession: typeof import("../src/host/webview-session.js").WebviewSession;
+      EditorPetPanel: typeof import("../src/host/editor-panel.js").EditorPetPanel;
+    };
+    const editor = new host.EditorPetPanel(
+      () =>
+        ({
+          dispose: () => {},
+          setVisible: () => {},
+        }) as unknown as import("../src/host/webview-session.js").WebviewSession,
+    );
+    editor.show();
+    editor.show();
+    assert.equal(panels.length, 1);
+    let release!: () => void;
+    const reveal = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let receive: (message: unknown) => void = () => {};
+    const webview = {
+      options: {},
+      html: "",
+      cspSource: "local",
+      asWebviewUri: () => ({ toString: () => "projected" }),
+      onDidReceiveMessage: (listener: (message: unknown) => void) => {
+        receive = listener;
+        return { dispose: () => {} };
+      },
+      postMessage: async () => true,
+    } as unknown as vscode.Webview;
+    let scene = createDefaultScene("seed");
+    const sceneStore = {
+      initialize: async () => scene,
+      read: async () => scene,
+      mutate: async (command: unknown) => {
+        scene = applySceneCommand(scene, command);
+        return scene;
+      },
+      dispose: async () => {},
+      assetReferencesInitialized: async () => false,
+      initializeAssetReferences: async () => ({ references: [], problems: [] }),
+      listAssetReferences: async () => ({ references: [], problems: [] }),
+      readAssetReference: async () => null,
+      compareAndSwapAssetReference: async () => { throw new Error("Unexpected asset mutation."); },
+    };
+    service = new CompanionService({
+      atlasPath: "/cat.webp",
+      storagePath: storage,
+      stateStore: sceneStore,
+      interactions: {
+        pickZip: async () => undefined,
+        confirmReplacement: async () => false,
+        openStudio: async () => {},
+      },
+    });
+    await service.initialize();
+    const session = new host.WebviewSession(
+      webview,
+      "view",
+      "view",
+      true,
+      service,
+      new SurfaceCoordinator(),
+      {} as vscode.Uri,
+      {} as vscode.Uri,
+      {
+        openEditor: () => {},
+        revealSidebar: () => reveal,
+        captureCloseEditor: () => editor.captureClose(),
+      },
+      {
+        name: "test",
+        append: () => {},
+        appendLine: () => {},
+        replace: () => {},
+        clear: () => {},
+        show: () => {},
+        hide: () => {},
+        dispose: () => {},
+      },
+    );
+    const staleClose = editor.captureClose();
+    receive({ type: "request", id: "old", method: "showSidebar" });
+    session.dispose();
+    receive({
+      type: "request",
+      id: "late",
+      method: "setSceneSettings",
+      params: { changes: { size: "large" } },
+    });
+    editor.close();
+    editor.show();
+    release();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(panels.length, 2);
+    assert.equal(panels[1].disposed, false);
+    assert.equal((await service.getSnapshot()).revision, 0);
+    assert.equal((await service.getSnapshot()).settings.size, "medium");
+    staleClose();
+    assert.equal(panels[1].disposed, false);
+    session.dispose();
+    editor.dispose();
+    await service.dispose();
+  } finally {
+    await service?.dispose();
+    await rm(storage, { recursive: true, force: true });
+    Reflect.deleteProperty(globalThis, "__openpetsVscode");
+  }
+});

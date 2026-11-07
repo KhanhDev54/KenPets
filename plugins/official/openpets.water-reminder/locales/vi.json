@@ -1,0 +1,23 @@
+{
+  "plugin.name": "Nhắc uống nước",
+  "plugin.description": "Pet nhẹ nhàng nhắc bạn nghỉ tay uống nước.",
+  "config.pace.label": "Tần suất nhắc",
+  "config.pace.description": "Chọn bao lâu pet nhắc bạn một lần.",
+  "config.pace.gentle": "Thưa (60 phút)",
+  "config.pace.normal": "Vừa (45 phút)",
+  "config.pace.often": "Dày (30 phút)",
+  "config.customSound.label": "Âm thanh riêng",
+  "config.customSound.description": "Âm thanh phát kèm lời nhắc (không bắt buộc).",
+  "indicator.water": "Uống nước",
+  "command.testReminder.title": "Thử lời nhắc",
+  "command.testReminder.description": "Hiện lời nhắc uống nước ngay để kiểm tra nội dung và âm thanh.",
+  "command.drinkNow.title": "Mình uống nước rồi",
+  "command.drinkNow.description": "Ghi nhận một lần uống nước ngay bây giờ.",
+  "command.pauseToday.title": "Tạm dừng hôm nay",
+  "command.pauseToday.description": "Không nhắc uống nước nữa cho đến ngày mai.",
+  "bubble.reminder": "Nghỉ tay uống vài ngụm nước nhé?",
+  "action.done": "Uống rồi",
+  "action.later": "Để sau",
+  "speech.done": "Tốt lắm. Lát nữa mình nhắc tiếp nha.",
+  "speech.paused": "Hôm nay tạm dừng nhé. Mai mình nhắc lại."
+}
