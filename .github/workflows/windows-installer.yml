@@ -77,6 +77,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${{ steps.locate.outputs.path }}" --clobber
+            exit 0
+          fi
           gh release create "$GITHUB_REF_NAME" "${{ steps.locate.outputs.path }}" \
             --title "KenPets $GITHUB_REF_NAME" \
             --notes "Bản cài KenPets cho Windows (x64). File chưa ký số nên Windows có thể hiện cảnh báo SmartScreen: bấm 'More info' rồi 'Run anyway'."
