@@ -1,0 +1,56 @@
+import type { Messages } from "../catalog.js";
+
+// Tiếng Việt — Vietnamese (partial: missing keys fall back to English per-key)
+export const vi: Partial<Messages> = {
+  // --- Tray menu (main process, src/tray.ts) ---
+  "tray.updateAvailable": "Có bản cập nhật: {version}...",
+  "tray.defaultPet": "Pet mặc định: {name}",
+  "tray.showDefaultPet": "Hiện pet mặc định",
+  "tray.hideDefaultPet": "Ẩn pet mặc định",
+  "tray.pauseAllPets": "Tạm dừng tất cả pet",
+  "tray.resumeAllPets": "Tiếp tục tất cả pet",
+  "tray.managePets": "Quản lý pet...",
+  "tray.controlCenter": "Trung tâm điều khiển...",
+  "tray.website": "Trang web...",
+  "tray.integrations": "Tích hợp...",
+  "tray.plugins": "Plugin...",
+  "tray.settings": "Cài đặt...",
+  "tray.talk": "Trò chuyện với pet",
+  "tray.endTalk": "Kết thúc trò chuyện",
+  "tray.cancelVoiceListening": "Tắt nghe micro",
+  "tray.cancelVoiceTranscription": "Hủy chuyển giọng nói",
+  "tray.openLogsFolder": "Mở thư mục log...",
+  "tray.quit": "Thoát KenPets",
+
+  // --- Shared ---
+  "app.logo.alt": "KenPets",
+  "settings.general.showOnLaunch.description": "Giữ KenPets ở khay hệ thống nhưng ẩn pet cho đến khi bạn gọi.",
+  "settings.general.launchAtLogin.supported": "Tự mở KenPets khi bật máy.",
+  "settings.language.description": "Ngôn ngữ hiển thị cho menu và cửa sổ của KenPets.",
+  "common.latest": "mới nhất",
+  "common.builtInPet": "Pet có sẵn",
+  "common.cancel": "Hủy",
+
+  // --- Pet window (main process, src/pet-window.ts) ---
+  "pet.paused": "Đang tạm dừng",
+  "pet.status.thinking": "Đang nghĩ",
+  "pet.status.working": "Đang làm",
+  "pet.status.editing": "Đang sửa",
+  "pet.status.testing": "Đang thử",
+  "pet.status.waiting": "Đang chờ",
+  "pet.status.done": "Xong",
+  "pet.status.oops": "Ối",
+  "pet.status.hi": "Chào",
+  "pet.menu.hidePet": "Ẩn pet",
+  "pet.menu.closePet": "Đóng pet",
+  "pet.menu.size": "Kích thước",
+  "pet.menu.flipHorizontally": "Lật ngang",
+  "pet.menu.outfit": "Trang phục",
+  "pet.menu.outfitAuto": "Tự động · {outfit}",
+  "pet.menu.outfitDefault": "Mặc định",
+  "pet.menu.editWardrobe": "Sửa tủ đồ…",
+  "pet.menu.openControlCenter": "Mở Trung tâm điều khiển",
+  "pet.menu.talk": "Trò chuyện với pet",
+  "pet.menu.focusSessionWindow": "Chuyển tới cửa sổ phiên",
+  "pet.menu.focusSessionWindowNoA11y": "Chuyển tới cửa sổ phiên (cần quyền Trợ năng)",
+};
