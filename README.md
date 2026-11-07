@@ -16,7 +16,7 @@ Tác giả: **KenDev**. Dự án dựa trên [OpenPets](https://github.com/OpenP
 Cần Node.js 20+ và Git.
 
 ```
-git clone https://github.com/KhanhDev54/KenPets
+git clone --recurse-submodules https://github.com/KhanhDev54/KenPets
 cd KenPets
 corepack enable
 pnpm install
