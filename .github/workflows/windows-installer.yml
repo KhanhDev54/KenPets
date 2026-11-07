@@ -1,0 +1,82 @@
+name: Windows installer
+
+# Builds an unsigned KenPets NSIS installer for Windows x64.
+# Push a tag like v4.1.0 to also publish it as a GitHub Release.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows x64 installer
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build desktop dependencies
+        shell: bash
+        run: pnpm --filter '@open-pets/desktop^...' build
+
+      - name: Build desktop bundles
+        shell: bash
+        run: |
+          pnpm --dir apps/desktop exec tsc
+          pnpm --dir apps/desktop build:preload
+          pnpm --dir apps/desktop exec vite build
+
+      - name: Medicine reminder plugin test
+        run: node plugins/official/openpets.medicine-reminder/test.js
+
+      - name: Clean package output
+        run: node apps/desktop/scripts/clean-package-output.cjs
+
+      - name: Build NSIS installer
+        run: pnpm --dir apps/desktop exec electron-builder --win nsis --x64 --publish never
+
+      - name: Locate installer
+        id: locate
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -Path apps/desktop/dist-electron -Filter "KenPets-*-win-x64-setup.exe" | Select-Object -First 1
+          if (-not $installer) { throw "No KenPets installer was produced." }
+          "path=$($installer.FullName)" >> $env:GITHUB_OUTPUT
+          "name=$($installer.Name)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.locate.outputs.name }}
+          path: ${{ steps.locate.outputs.path }}
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "${{ steps.locate.outputs.path }}" \
+            --title "KenPets $GITHUB_REF_NAME" \
+            --notes "Bản cài KenPets cho Windows (x64). File chưa ký số nên Windows có thể hiện cảnh báo SmartScreen: bấm 'More info' rồi 'Run anyway'."
