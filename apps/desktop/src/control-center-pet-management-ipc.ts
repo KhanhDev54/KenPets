@@ -75,6 +75,8 @@ export type ControlCenterPetManagementIpcDependencies = {
   readonly showOpenDialog: (owner: unknown, options: OpenDialogOptions) => Promise<OpenDialogResult>;
   readonly stat: (path: string) => Promise<{ readonly isDirectory: () => boolean }>;
   readonly openExternal: (url: string) => Promise<void>;
+  /** Open KenDev's bundled pet maker (face-photo pet studio) in the default browser. */
+  readonly openPetStudio: () => Promise<void>;
   readonly setTimeout: (callback: () => void, delayMs: number) => { readonly unref?: () => void };
   readonly getAppStateSnapshot: () => AppStateSnapshot;
   readonly getSettingsStateSnapshot: () => unknown;
@@ -119,6 +121,7 @@ export function installControlCenterPetManagementIpcHandlers({
   showOpenDialog,
   stat,
   openExternal,
+  openPetStudio,
   setTimeout,
   getAppStateSnapshot,
   getSettingsStateSnapshot,
@@ -293,7 +296,7 @@ export function installControlCenterPetManagementIpcHandlers({
   registerHandle("openpets:open-studio", async (event) => {
     authorizeSender(event);
     logger.debug("pet studio opened from pets page");
-    await openExternal("https://openpets.dev/studio?utm_source=openpets-desktop&utm_medium=app&utm_campaign=pets-page");
+    await openPetStudio();
   });
 
   registerHandle("openpets:import-codex-pet", async (event, petId: unknown) => {

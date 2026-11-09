@@ -221,11 +221,11 @@ export const vi: Partial<Messages> = {
   "pets.search.placeholder": "Tìm pet...",
   "pets.import": "Nhập pet",
   "pets.gallery": "Thư viện web",
-  "pets.studio.eyebrow": "Pet Studio",
+  "pets.studio.eyebrow": "Xưởng Pet KenDev",
   "pets.studio.title": "Tự làm pet của bạn",
   "pets.studio.titleNoResults": "Không tìm thấy? Tự làm luôn",
-  "pets.studio.body": "Mô tả pet hoặc tải ảnh lên. Studio vẽ đủ mọi động tác, sẵn sàng để cài.",
-  "pets.studio.action": "Mở Pet Studio",
+  "pets.studio.body": "Chọn dáng người hoặc thú, ghép ảnh mặt của bạn vào. Xưởng vẽ đủ mọi động tác và xuất file để Nhập pet.",
+  "pets.studio.action": "Mở Xưởng Pet",
   "pets.studio.artAlt": "Ảnh con mèo nở ra từ quả trứng thành pet pixel",
 
   // --- Pets card badges/actions (renderer) ---

@@ -88,6 +88,7 @@ function createHarness() {
       return { isDirectory: () => selectedIsDirectory };
     },
     openExternal: async (url) => { record("openExternal", url); },
+    openPetStudio: async () => { record("openPetStudio"); },
     setTimeout: (callback, delayMs) => {
       record("setTimeout", delayMs);
       delayedCallbacks.push(callback);
@@ -298,6 +299,8 @@ assert.deepEqual([...createHarness().handlers.keys()], channels);
   assert.deepEqual(await getHandler(harness, "openpets:reset-default-pet-position")(event), harness.state);
   await getHandler(harness, "openpets:open-gallery")(event);
   assert.deepEqual(harness.calls.at(-1), { method: "openExternal", args: ["https://openpets.dev/gallery"] });
+  await getHandler(harness, "openpets:open-studio")(event);
+  assert.deepEqual(harness.calls.at(-1), { method: "openPetStudio", args: [] });
 }
 
 {
