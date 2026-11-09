@@ -44,7 +44,7 @@
     "ankiDeck": {
       "type": "text",
       "label": "Anki Deck Name",
-      "default": "OpenPets Vocab",
+      "default": "KenPets Vocab",
       "description": "The deck where vocabulary will be saved."
     },
     "preferredLanguage": {

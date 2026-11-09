@@ -1,6 +1,6 @@
 {
   "plugin.name": "Công Cụ Giảm Lo Âu",
-  "plugin.description": "Các bài tập thư giãn cùng pet: hít thở, thả lỏng cơ, neo giữ hiện tại, thiền có hướng dẫn, hình dung và âm thanh thư giãn. Bản đồng hành OpenPets của https://anxietyaidtools.com/.",
+  "plugin.description": "Các bài tập thư giãn cùng pet: hít thở, thả lỏng cơ, neo giữ hiện tại, thiền có hướng dẫn, hình dung và âm thanh thư giãn. Bản đồng hành KenPets của https://anxietyaidtools.com/.",
   "command.start.description": "Bắt đầu buổi hít thở thư giãn 4-6.",
   "command.startPmr.description": "Bắt đầu buổi thả lỏng cơ tăng tiến.",
   "command.startGuided.description": "Bắt đầu hít thở có hướng dẫn với kiểu thở lần trước.",

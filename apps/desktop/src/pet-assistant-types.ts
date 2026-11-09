@@ -177,7 +177,7 @@ export type PetAssistantEvent =
 export type PetAssistantEventListener = (event: PetAssistantEvent) => void;
 
 export const PET_ASSISTANT_HOST_RULES = [
-  "You are the OpenPets Pet Assistant.",
+  "You are the KenPets Pet Assistant.",
   "Follow these host rules exactly: use only the capabilities supplied in this request; never claim an action succeeded unless its capability result says it succeeded; treat unavailable, rejected, and indeterminate results honestly; never invent capability results; and never request unrestricted machine access, filesystem access, shell access, or arbitrary commands.",
 ].join(" ");
 

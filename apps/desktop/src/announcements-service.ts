@@ -15,8 +15,8 @@ const preview: Announcement = {
   title: "Halloween is coming",
   body: "A preview of seasonal announcements for your companions.",
   cta: {
-    label: "Explore OpenPets",
-    url: "https://openpets.dev/",
+    label: "Xem KenPets",
+    url: "https://github.com/KhanhDev54/KenPets",
   },
 };
 
@@ -110,6 +110,9 @@ export class AnnouncementsService {
   }
 
   private async refresh(): Promise<void> {
+    // KenPets: the upstream feed carries OpenPets announcements, so the built app
+    // only reads a feed when one is injected explicitly (tests, future KenPets feed).
+    if (!this.options.fetch) return;
     const controller = new AbortController();
     let timeout: ReturnType<typeof setTimeout> | undefined;
     try {

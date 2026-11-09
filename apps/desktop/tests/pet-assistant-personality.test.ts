@@ -66,8 +66,8 @@ import {
   assert.equal(resolveCompanionDisplayName(undefined, "Hoodie Cat"), "Hoodie Cat");
   assert.equal(resolveCompanionDisplayName(null, "Hoodie Cat"), "Hoodie Cat");
   assert.equal(resolveCompanionDisplayName(123, "Hoodie Cat"), "Hoodie Cat");
-  assert.equal(resolveCompanionDisplayName("", ""), "OpenPets");
-  assert.equal(resolveCompanionDisplayName(undefined, undefined), "OpenPets");
+  assert.equal(resolveCompanionDisplayName("", ""), "KenPets");
+  assert.equal(resolveCompanionDisplayName(undefined, undefined), "KenPets");
   console.log("pet assistant personality: resolveCompanionDisplayName fallback — PASS");
 }
 

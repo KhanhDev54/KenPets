@@ -2,7 +2,7 @@
   "plugin.name": "Launch Buddy",
   "plugin.description": "잔잔한 타이밍, 반응 및 선택 동작 소리를 포함하여 조용하고 친근한 부팅 시작 인사를 제공합니다.",
   "config.enabled.label": "인사말 활성화",
-  "config.enabled.description": "OpenPets가 시작될 때 Launch Buddy가 인사를 건네도록 합니다.",
+  "config.enabled.description": "KenPets가 시작될 때 Launch Buddy가 인사를 건네도록 합니다.",
   "config.greetingMode.label": "인사 스타일",
   "config.greetingMode.description": "Launch Buddy가 메시지를 선택하는 방식을 설정합니다.",
   "config.greetingMode.smart": "시간 맞춤형 스마트",
@@ -51,6 +51,6 @@
   "message.smart.night": "밤이 꽤 늦었네요. 포근하고 조용하게 곁을 지킬게요.",
   "message.random.0": "다시 만나서 반가워요! 당신의 버디가 준비 완료되었습니다.",
   "message.random.1": "다시 만나서 정말 좋아요. 이번 시간을 유익하게 보내봐요.",
-  "message.random.2": "OpenPets가 깨어났으니, 저도 깨어났어요!",
+  "message.random.2": "KenPets가 깨어났으니, 저도 깨어났어요!",
   "message.random.3": "안녕하세요, 도움이 필요하면 언제든 곁에 있을게요."
 }

@@ -4,7 +4,7 @@ import { createAppIcon } from "./assets.js";
 import { debug } from "./logger.js";
 import { VoicePrivacyIndicator, type VoicePrivacyIndicatorSurface } from "./voice-privacy-indicator.js";
 
-const indicatorHtml = `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><style>html,body{margin:0;background:transparent;font:600 13px system-ui;color:white}.badge{margin:4px;padding:9px 13px;border-radius:18px;background:rgba(153,27,27,.94);box-shadow:0 4px 18px rgba(0,0,0,.25)}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#fecaca;margin-right:8px}</style><div class="badge"><span class="dot"></span>OpenPets is listening</div>`;
+const indicatorHtml = `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><style>html,body{margin:0;background:transparent;font:600 13px system-ui;color:white}.badge{margin:4px;padding:9px 13px;border-radius:18px;background:rgba(153,27,27,.94);box-shadow:0 4px 18px rgba(0,0,0,.25)}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#fecaca;margin-right:8px}</style><div class="badge"><span class="dot"></span>KenPets is listening</div>`;
 
 class ElectronVoicePrivacyIndicatorSurface implements VoicePrivacyIndicatorSurface {
   #window: BrowserWindow | null = null;

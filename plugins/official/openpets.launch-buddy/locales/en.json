@@ -2,7 +2,7 @@
   "plugin.name": "Launch Buddy",
   "plugin.description": "A friendly startup greeting with gentle timing, reactions, and optional sound.",
   "config.enabled.label": "Enable greetings",
-  "config.enabled.description": "Let Launch Buddy greet you when OpenPets starts.",
+  "config.enabled.description": "Let Launch Buddy greet you when KenPets starts.",
   "config.greetingMode.label": "Greeting style",
   "config.greetingMode.description": "Choose how Launch Buddy picks a message.",
   "config.greetingMode.smart": "Smart time-aware",
@@ -51,6 +51,6 @@
   "message.smart.night": "You’re up late—I'll keep things cozy and quiet.",
   "message.random.0": "Welcome back! Your buddy is ready.",
   "message.random.1": "Nice to see you again. Let’s make this session a good one.",
-  "message.random.2": "OpenPets is awake, and so am I!",
+  "message.random.2": "KenPets is awake, and so am I!",
   "message.random.3": "Hi there—I'll be nearby if you need a boost."
 }

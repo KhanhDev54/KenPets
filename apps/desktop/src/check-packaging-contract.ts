@@ -20,7 +20,7 @@ const workspaceConfig = readFileSync(join(repoRoot, "pnpm-workspace.yaml"), "utf
 const builderConfigPath = join(appDir, "electron-builder.yml");
 const builderConfig = readFileSync(builderConfigPath, "utf8");
 
-assert.equal(packageJson.description, "OpenPets tray-first desktop companion app.");
+assert.equal(packageJson.description, "KenPets tray-first desktop companion app.");
 assert.equal(packageJson.author, "KenDev");
 assert.equal(packageJson.main, "dist/bootstrap.js", "Electron must enter through the early display-backend bootstrap.");
 assert.match(packageJson.scripts?.["dev:debug"] ?? "", /OPENPETS_LOG_LEVEL=debug OPENPETS_LOG_CONSOLE=1 pnpm dev/, "desktop debug dev script must enable verbose log mirroring.");

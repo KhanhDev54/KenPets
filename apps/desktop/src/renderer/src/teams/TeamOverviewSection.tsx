@@ -141,7 +141,7 @@ export function TeamOverviewSection({
                 : `${pendingApprovalsCount} Team Plugins Awaiting Permission Approval`}
             </strong>
             <p className="m-0 mt-1 text-xs text-amber-900 leading-relaxed dark:text-amber-300/90">
-              Your organization has provisioned plugins for your team. Under the OpenPets security
+              Your organization has provisioned plugins for your team. Under the KenPets security
               model, organization policy <strong>never automatically grants permissions</strong> on
               your device. Review the requested capabilities and approve them below to enable each
               tool on your device.

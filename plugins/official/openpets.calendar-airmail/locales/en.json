@@ -22,7 +22,7 @@
   "command.sync.title": "Sync now",
   "command.sync.description": "Fetch upcoming events from your primary Google Calendar now.",
   "command.disconnect.title": "Disconnect Google Calendar",
-  "command.disconnect.description": "Remove the Google Calendar connection from OpenPets.",
+  "command.disconnect.description": "Remove the Google Calendar connection from KenPets.",
   "command.test.title": "Test delivery",
   "command.test.description": "Send a sample calendar airmail with your chosen courier.",
   "menu.todayCount": "{count} event(s) remaining today",

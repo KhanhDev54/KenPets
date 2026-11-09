@@ -104,7 +104,7 @@ export async function getCatalogSearchUiState(): Promise<CatalogSearchUiState> {
 export async function getCatalogPet(petId: string): Promise<CatalogPetV2> {
   const pet = await findCatalogPet(petId);
   const required = getRequiredOpenPetsVersion(pet);
-  if (required) throw new Error(`${pet.displayName} needs OpenPets ${required} or newer. Update OpenPets to install it.`);
+  if (required) throw new Error(`${pet.displayName} needs KenPets ${required} or newer. Update KenPets to install it.`);
   return pet;
 }
 

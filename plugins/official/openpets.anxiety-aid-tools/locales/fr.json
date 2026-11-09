@@ -1,6 +1,6 @@
 {
   "plugin.name": "Anxiety Aid Tools",
-  "plugin.description": "Des pratiques apaisantes autour de votre mascotte : respiration, relaxation musculaire, ancrage, méditation guidée, visualisation et sons relaxants. Le compagnon OpenPets de https://anxietyaidtools.com/.",
+  "plugin.description": "Des pratiques apaisantes autour de votre mascotte : respiration, relaxation musculaire, ancrage, méditation guidée, visualisation et sons relaxants. Le compagnon KenPets de https://anxietyaidtools.com/.",
   "command.start.description": "Démarrer une session de respiration calme 4-6.",
   "command.startPmr.description": "Démarrer une session de relaxation musculaire progressive.",
   "command.startGuided.description": "Démarrer une respiration guidée avec le dernier rythme utilisé.",
