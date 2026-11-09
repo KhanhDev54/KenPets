@@ -258,6 +258,7 @@ type ControlCenterApi = WhatsNewApi & AnnouncementsApi & {
   importCodexPet(petId: string): Promise<unknown>;
   openGallery(): Promise<void>;
   openStudio(): Promise<void>;
+  openUpstreamStudio(): Promise<void>;
   openOrganizationsPage?(): Promise<void>;
   removePet(petId: string): Promise<StateSnapshot>;
   onRouteChange(callback: (target: ControlCenterRouteTarget) => void): () => void;
@@ -4287,9 +4288,16 @@ function ControlCenter({ onAppearanceThemeChange }: { onAppearanceThemeChange: (
                       {hasSearchQuery ? t("pets.studio.titleNoResults") : t("pets.studio.title")}
                     </h2>
                     <p className="studio-cta-body">{t("pets.studio.body")}</p>
-                    <div>
+                    <div className="flex flex-wrap gap-2">
                       <Button variant="accent" icon={<SparklesIcon />} onClick={openStudio}>
                         {t("pets.studio.action")}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        icon={<SparklesIcon />}
+                        onClick={() => void api.openUpstreamStudio().catch((err) => setError(String(err?.message ?? err)))}
+                      >
+                        {t("pets.studio.upstreamAction")}
                       </Button>
                     </div>
                   </div>

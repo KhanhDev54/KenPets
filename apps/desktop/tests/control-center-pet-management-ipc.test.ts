@@ -23,6 +23,7 @@ const channels = [
   "openpets:install-local-pet",
   "openpets:open-gallery",
   "openpets:open-studio",
+  "openpets:open-upstream-studio",
   "openpets:import-codex-pet",
   "openpets:remove-pet",
   "openpets:reset-default-pet-position",
@@ -301,6 +302,8 @@ assert.deepEqual([...createHarness().handlers.keys()], channels);
   assert.deepEqual(harness.calls.at(-1), { method: "openExternal", args: ["https://openpets.dev/gallery"] });
   await getHandler(harness, "openpets:open-studio")(event);
   assert.deepEqual(harness.calls.at(-1), { method: "openPetStudio", args: [] });
+  await getHandler(harness, "openpets:open-upstream-studio")(event);
+  assert.deepEqual(harness.calls.at(-1), { method: "openExternal", args: ["https://openpets.dev/studio"] });
 }
 
 {
