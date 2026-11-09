@@ -158,6 +158,10 @@ ol.how b { color: var(--text); font-weight: 600; }
           <input type="file" id="fileFull" accept="image/*" hidden>
         </div>
         <div class="cut-box"><canvas id="cutPreview" width="320" height="240"></canvas></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn" id="aiCut" type="button">✨ Tách nền bằng AI</button>
+          <small style="opacity:.75;font-size:12px">Thử nghiệm · lần đầu tải ~7 MB, cần mạng · chạy ngay trên máy bạn, ảnh không gửi đi đâu</small>
+        </div>
         <label class="f" for="bgTol">Độ mạnh tách nền <input type="range" id="bgTol" min="0" max="120" step="1" value="40"></label>
         <label class="check"><input type="checkbox" id="faceLeft"> Nhân vật đang nhìn sang trái</label>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -254,7 +258,7 @@ ol.how b { color: var(--text); font-weight: 600; }
     { id: "dog", label: "Cún", kind: "animal", ears: "dog" },
   ];
 
-  const state = { mode: "face", cut: null, fullImg: null, palette: null, eyes: [], lidColors: [], cutBox: null, pickingEyes: false, cutView: null, body: "boy", face: null, img: null, zoom: 1.3, rot: 0, panX: 0, panY: 0, anim: "waving" };
+  const state = { mode: "face", cut: null, fullImg: null, palette: null, eyes: [], lidColors: [], cutBox: null, pickingEyes: false, cutView: null, aiMask: null, body: "boy", face: null, img: null, zoom: 1.3, rot: 0, panX: 0, panY: 0, anim: "waving" };
   const $ = (id) => document.getElementById(id);
   const colors = () => ({ outfit: $("cOutfit").value, hair: $("cHair").value, skin: $("cSkin").value });
 
@@ -623,7 +627,11 @@ ol.how b { color: var(--text); font-weight: 600; }
     const d = g.getImageData(0, 0, W, H), a = d.data;
     const tol = +$("bgTol").value;
     const opaqueCorners = [0, W - 1, (H - 1) * W, H * W - 1].every((q) => a[q * 4 + 3] > 250);
-    if (opaqueCorners && tol > 0) {
+    const m = state.aiMask;
+    if (m && m.W === W && m.H === H) {
+      for (let q = 0; q < W * H; q++) { const v = m.data[q]; a[q * 4 + 3] = Math.min(a[q * 4 + 3], v < 40 ? 0 : v > 215 ? 255 : v); }
+      g.putImageData(d, 0, 0);
+    } else if (opaqueCorners && tol > 0) {
       // flood fill from every border pixel that matches the average border colour
       let r = 0, gg = 0, b = 0, cnt = 0;
       const border = [];
@@ -697,7 +705,7 @@ ol.how b { color: var(--text); font-weight: 600; }
   function loadFull(file) {
     if (!file || !file.type.startsWith("image/")) { setStatus("File này không phải ảnh. Hãy chọn ảnh JPG hoặc PNG.", true); return; }
     const img = new Image();
-    img.onload = () => { state.fullImg = img; state.eyes = []; state.lidColors = []; processFull(); refresh(); setStatus("Đã nhận ảnh. Nếu nền chưa sạch, chỉnh “Độ mạnh tách nền”."); };
+    img.onload = () => { state.fullImg = img; state.aiMask = null; state.eyes = []; state.lidColors = []; processFull(); refresh(); setStatus("Đã nhận ảnh. Nếu nền chưa sạch, chỉnh “Độ mạnh tách nền”."); };
     img.onerror = () => setStatus("Không đọc được ảnh này. Thử ảnh khác nhé.", true);
     img.src = URL.createObjectURL(file);
   }
@@ -708,7 +716,45 @@ ol.how b { color: var(--text); font-weight: 600; }
   ["dragleave", "drop"].forEach((ev) => dropFull.addEventListener(ev, () => dropFull.classList.remove("over")));
   dropFull.addEventListener("drop", (e) => { e.preventDefault(); loadFull(e.dataTransfer.files[0]); });
   let tolTimer = 0;
-  $("bgTol").oninput = () => { clearTimeout(tolTimer); tolTimer = setTimeout(() => { processFull(); refresh(); }, 120); };
+  // AI background removal: MODNet (Apache-2.0) through Transformers.js (Apache-2.0), run locally in the browser
+  let aiLib = null, aiModel = null, aiProc = null;
+  async function aiRemoveBg() {
+    const img = state.fullImg;
+    if (!img) { setStatus("Hãy chọn ảnh nhân vật trước.", true); return; }
+    const btn = $("aiCut"); btn.disabled = true;
+    try {
+      setStatus("Đang tải AI tách nền (lần đầu khoảng 7 MB, cần mạng)…");
+      if (!aiLib) aiLib = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0");
+      const { AutoModel, AutoProcessor, RawImage, env } = aiLib;
+      env.allowLocalModels = false;
+      if (!aiModel) {
+        aiModel = await AutoModel.from_pretrained("Xenova/modnet", { dtype: "q8" });
+        aiProc = await AutoProcessor.from_pretrained("Xenova/modnet");
+      }
+      setStatus("AI đang tách nền…");
+      const MAX = 640, k = Math.min(1, MAX / Math.max(img.width, img.height));
+      const W = Math.max(1, Math.round(img.width * k)), H = Math.max(1, Math.round(img.height * k));
+      const c = document.createElement("canvas"); c.width = W; c.height = H;
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, W, H); g.drawImage(img, 0, 0, W, H);
+      const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+      const raw = await RawImage.fromBlob(blob);
+      const { pixel_values } = await aiProc(raw);
+      const inName = (aiModel.sessions && aiModel.sessions.model && aiModel.sessions.model.inputNames && aiModel.sessions.model.inputNames[0]) || "input";
+      const out = await aiModel({ [inName]: pixel_values });
+      const t = out.output || Object.values(out)[0];
+      const mask = await RawImage.fromTensor(t[0].mul(255).to("uint8")).resize(W, H);
+      const md = new Uint8Array(W * H), ch = mask.channels || 1;
+      for (let q = 0; q < W * H; q++) md[q] = mask.data[q * ch];
+      state.aiMask = { W, H, data: md };
+      processFull(); refresh();
+      if (state.cut) setStatus("Đã tách nền bằng AI. Muốn quay lại cách cũ thì kéo thanh “Độ mạnh tách nền”.");
+    } catch (err) {
+      console.warn(err);
+      setStatus("Chưa tách nền bằng AI được (cần mạng ở lần đầu). Vẫn dùng được cách tách nền thường bên dưới.", true);
+    } finally { btn.disabled = false; }
+  }
+  $("aiCut").onclick = aiRemoveBg;
+  $("bgTol").oninput = () => { state.aiMask = null; clearTimeout(tolTimer); tolTimer = setTimeout(() => { processFull(); refresh(); }, 120); };
   $("faceLeft").onchange = () => refresh();
   $("markEyes").onclick = () => {
     if (!state.cut) { setStatus("Hãy chọn ảnh nhân vật trước.", true); return; }
