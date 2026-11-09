@@ -229,6 +229,7 @@ export const en = {
   "pets.studio.titleNoResults": "Can't find it? Make it",
   "pets.studio.body": "Pick a body, add your face photo. The studio draws every animation and exports a file for Import pet.",
   "pets.studio.action": "Open Pet Studio",
+  "pets.studio.upstreamAction": "OpenPets Studio (AI)",
   "pets.studio.artAlt": "A cat photo hatching from an egg into a pixel-art pet",
 
   // --- Pets card badges/actions (renderer) ---

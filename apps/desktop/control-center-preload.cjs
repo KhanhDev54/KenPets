@@ -103,6 +103,7 @@ const api = {
   importCodexPet: (petId) => ipcRenderer.invoke("openpets:import-codex-pet", petId),
   openGallery: () => ipcRenderer.invoke("openpets:open-gallery"),
   openStudio: () => ipcRenderer.invoke("openpets:open-studio"),
+  openUpstreamStudio: () => ipcRenderer.invoke("openpets:open-upstream-studio"),
   openOrganizationsPage: () => ipcRenderer.invoke("openpets:open-organizations-page"),
   removePet: (petId) => ipcRenderer.invoke("openpets:remove-pet", petId),
   onRouteChange: (callback) => {
