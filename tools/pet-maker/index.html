@@ -77,6 +77,13 @@ input[type="color"] { width: 36px; height: 30px; border: 1px solid var(--line); 
 .chip[aria-pressed="true"] .k { color: inherit; opacity: .7; }
 .sheet { overflow-x: auto; border-radius: 10px; background: repeating-conic-gradient(var(--check) 0 25%, transparent 0 50%) 0 0 / 12px 12px; }
 .sheet canvas { display: block; width: 100%; min-width: 320px; height: auto; }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; background: var(--stage); border-radius: 12px; }
+.mode { font: inherit; font-weight: 600; font-size: 14px; border: 0; border-radius: 9px; padding: 9px 8px; background: transparent; color: var(--muted); cursor: pointer; }
+.mode[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.cut-box { width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; background: repeating-conic-gradient(var(--check) 0 25%, transparent 0 50%) 0 0 / 16px 16px; display: grid; place-items: center; overflow: hidden; }
+.cut-box canvas { max-width: 100%; max-height: 100%; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+[hidden] { display: none !important; }
 .status { font-size: 13px; color: var(--muted); min-height: 1.5em; }
 .status.err { color: var(--pink); }
 ol.how { margin: 0; padding-left: 20px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
@@ -93,6 +100,24 @@ ol.how b { color: var(--ink); font-weight: 600; }
 
   <div class="grid">
     <section class="panel" aria-label="Tùy chỉnh">
+      <div class="modes" role="group" aria-label="Cách làm pet">
+        <button type="button" class="mode" data-mode="face" aria-pressed="true">Ghép mặt vào thân</button>
+        <button type="button" class="mode" data-mode="photo" aria-pressed="false">Pet từ 1 ảnh</button>
+      </div>
+
+      <div id="photoMode" hidden style="display:flex;flex-direction:column;gap:14px">
+        <h2 class="step-title">Ảnh nhân vật <small>bước 1</small></h2>
+        <div class="drop" id="dropFull">Kéo thả ảnh nhân vật vào đây, dán (Ctrl+V), hoặc
+          <div style="margin-top:6px"><button class="btn" id="pickFull" type="button">Chọn ảnh…</button></div>
+          <input type="file" id="fileFull" accept="image/*" hidden>
+        </div>
+        <div class="cut-box"><canvas id="cutPreview" width="320" height="240"></canvas></div>
+        <label class="f" for="bgTol">Độ mạnh tách nền <input type="range" id="bgTol" min="0" max="120" step="1" value="40"></label>
+        <label class="check"><input type="checkbox" id="faceLeft"> Nhân vật đang nhìn sang trái</label>
+        <p class="note">Ảnh đẹp nhất là nhân vật đứng một mình trên nền trơn (trắng hoặc một màu), hoặc PNG đã xóa nền. Có thể nhờ AI vẽ: “chibi cute character, full body, plain white background”.</p>
+      </div>
+
+      <div id="faceMode" style="display:flex;flex-direction:column;gap:16px">
       <h2 class="step-title">Chọn thân <small>bước 1</small></h2>
       <div class="bodies" id="bodies"></div>
 
@@ -111,12 +136,15 @@ ol.how b { color: var(--ink); font-weight: 600; }
       </div>
       <p class="note">Mẹo: kéo ảnh để khuôn mặt nằm giữa vòng tròn, phóng to cho mặt chiếm gần hết vòng.</p>
 
-      <h2 class="step-title">Màu sắc &amp; tên <small>bước 3</small></h2>
+      <h2 class="step-title">Màu sắc <small>bước 3</small></h2>
       <div class="colors">
         <label for="cOutfit"><input type="color" id="cOutfit" value="#4f7cff">Áo / lông</label>
         <label for="cHair"><input type="color" id="cHair" value="#3a2a22">Tóc / tai</label>
         <label for="cSkin"><input type="color" id="cSkin" value="#f6c9a8">Da / bụng</label>
       </div>
+      </div>
+
+      <h2 class="step-title">Kiểu vẽ &amp; tên</h2>
       <label class="f" for="artStyle">Kiểu vẽ
         <select id="artStyle">
           <option value="pixel">Pixel art (giống pet trong app)</option>
@@ -168,7 +196,7 @@ ol.how b { color: var(--ink); font-weight: 600; }
     { id: "dog", label: "Cún", kind: "animal", ears: "dog" },
   ];
 
-  const state = { body: "boy", face: null, img: null, zoom: 1.3, rot: 0, panX: 0, panY: 0, anim: "waving" };
+  const state = { mode: "face", cut: null, fullImg: null, body: "boy", face: null, img: null, zoom: 1.3, rot: 0, panX: 0, panY: 0, anim: "waving" };
   const $ = (id) => document.getElementById(id);
   const colors = () => ({ outfit: $("cOutfit").value, hair: $("cHair").value, skin: $("cSkin").value });
 
@@ -369,9 +397,42 @@ ol.how b { color: var(--ink); font-weight: 600; }
   const outC = document.createElement("canvas"); outC.width = FW; outC.height = FH;
   const tinyC = document.createElement("canvas"); tinyC.width = FW / PX; tinyC.height = FH / PX;
   const silC = document.createElement("canvas"); silC.width = FW; silC.height = FH;
+  // "Pet from one photo": the cut-out character is animated as a puppet (bounce, lean,
+  // squash, flip) using the same per-state poses as the drawn bodies.
+  function drawPhotoFrame(g, stateId, i, n) {
+    const cut = state.cut, p = pose(stateId, i, n), ground = 198;
+    if (!cut) {
+      g.fillStyle = "rgba(140,155,180,.6)"; g.font = "600 15px 'Be Vietnam Pro', sans-serif"; g.textAlign = "center";
+      g.fillText("Chưa có ảnh", 96, 104); g.textAlign = "start"; return;
+    }
+    const k = Math.min(156 / cut.width, 176 / cut.height), w = cut.width * k, h = cut.height * k;
+    let flip = $("faceLeft").checked ? -1 : 1;
+    if (stateId === "run-left") flip *= -1;
+    let rot = p.tilt + p.lean, sx = 2 - p.squash, sy = p.squash, dy = p.dy;
+    if (stateId === "waving") rot = (i % 2 ? 0.09 : -0.05);
+    if (stateId === "run-right" || stateId === "run-left") { rot = (i % 2 ? 0.06 : -0.02) * (stateId === "run-left" ? -1 : 1); sy *= i % 2 ? 0.97 : 1.02; }
+    if (stateId === "running") { sy *= i % 2 ? 0.985 : 1.01; }
+    if (stateId === "idle") { sy *= 1 - (p.dy * 0.006); dy = 0; }
+    g.save();
+    g.translate(96, ground + dy); g.rotate(rot); g.scale(sx * flip, sy);
+    if (p.sad) g.filter = "grayscale(.45) brightness(.88)";
+    g.drawImage(cut, -w / 2, -h, w, h);
+    g.restore();
+    if (p.prop === "laptop") {
+      g.fillStyle = "#9aa7bb"; rr(g, 58, 150, 76, 40, 6); g.fill();
+      g.fillStyle = "#ffffff"; g.beginPath(); g.arc(96, 170, 5, 0, 7); g.fill();
+      g.fillStyle = "#6c7a90"; rr(g, 48, 188, 96, 8, 3); g.fill();
+    }
+    if (p.prop === "book") {
+      g.fillStyle = "#1f9e8c"; rr(g, 66, 142, 60, 40, 4); g.fill();
+      g.fillStyle = "#ffffff"; rr(g, 70, 146, 24, 32, 2); g.fill(); rr(g, 98, 146, 24, 32, 2); g.fill();
+    }
+    drawFx(g, p.fx);
+  }
+
   function drawFrame(g, bodyId, stateId, i, n) {
     const rg = rawC.getContext("2d"); rg.setTransform(1, 0, 0, 1, 0, 0); rg.clearRect(0, 0, FW, FH);
-    drawFrameRaw(rg, bodyId, stateId, i, n);
+    if (state.mode === "photo") drawPhotoFrame(rg, stateId, i, n); else drawFrameRaw(rg, bodyId, stateId, i, n);
     const pixel = $("artStyle").value === "pixel";
     let src = rawC;
     if (pixel) {
@@ -388,11 +449,16 @@ ol.how b { color: var(--ink); font-weight: 600; }
     }
     // silhouette in outline colour
     const sg = silC.getContext("2d"); sg.globalCompositeOperation = "source-over"; sg.clearRect(0, 0, FW, FH); sg.drawImage(src, 0, 0);
-    sg.globalCompositeOperation = "source-in"; sg.fillStyle = OUTLINE; sg.fillRect(0, 0, FW, FH); sg.globalCompositeOperation = "source-over";
+    sg.globalCompositeOperation = "source-in"; sg.fillStyle = state.mode === "photo" ? "#ffffff" : OUTLINE; sg.fillRect(0, 0, FW, FH); sg.globalCompositeOperation = "source-over";
     const og = outC.getContext("2d"); og.clearRect(0, 0, FW, FH); og.imageSmoothingEnabled = false;
     const w = pixel ? PX : 3;
     for (const [ox, oy] of [[-w, 0], [w, 0], [0, -w], [0, w], [-w, -w], [w, -w], [-w, w], [w, w]]) og.drawImage(silC, ox, oy);
     og.drawImage(src, 0, 0);
+    if (state.mode === "photo") {
+      // ground shadow sits outside the white sticker outline
+      const sh = Math.max(0.55, 1 + pose(stateId, i, n).dy / 60);
+      g.save(); g.fillStyle = "rgba(20,30,50,.18)"; g.beginPath(); g.ellipse(96, 200, 40 * sh, 6 * sh, 0, 0, 7); g.fill(); g.restore();
+    }
     const prevSmooth = g.imageSmoothingEnabled; g.imageSmoothingEnabled = !pixel;
     g.drawImage(outC, 0, 0); g.imageSmoothingEnabled = prevSmooth;
   }
@@ -434,7 +500,7 @@ ol.how b { color: var(--ink); font-weight: 600; }
   ["dragover", "dragenter"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
   ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove("over")));
   drop.addEventListener("drop", (e) => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
-  document.addEventListener("paste", (e) => { const it = [...(e.clipboardData?.items || [])].find((x) => x.type.startsWith("image/")); if (it) loadFile(it.getAsFile()); });
+  document.addEventListener("paste", (e) => { const it = [...(e.clipboardData?.items || [])].find((x) => x.type.startsWith("image/")); if (it) (state.mode === "photo" ? loadFull : loadFile)(it.getAsFile()); });
   let drag = null;
   const box = $("cropBox");
   box.addEventListener("pointerdown", (e) => { if (!state.img) return; drag = { x: e.clientX, y: e.clientY, px: state.panX, py: state.panY }; box.setPointerCapture(e.pointerId); });
@@ -444,6 +510,83 @@ ol.how b { color: var(--ink); font-weight: 600; }
   $("zoom").oninput = (e) => { state.zoom = +e.target.value; renderCrop(); refreshSoon(); };
   $("rot").oninput = (e) => { state.rot = +e.target.value; renderCrop(); refreshSoon(); };
   $("clearFace").onclick = () => { state.img = null; renderCrop(); refresh(); setStatus("Đang dùng mặt hoạt hình."); };
+
+  // ---------- Pet from one photo: load, remove plain background, trim ----------
+  function processFull() {
+    const img = state.fullImg; if (!img) { state.cut = null; drawCutPreview(); return; }
+    const MAX = 640, k = Math.min(1, MAX / Math.max(img.width, img.height));
+    const W = Math.max(1, Math.round(img.width * k)), H = Math.max(1, Math.round(img.height * k));
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(img, 0, 0, W, H);
+    const d = g.getImageData(0, 0, W, H), a = d.data;
+    const tol = +$("bgTol").value;
+    const opaqueCorners = [0, W - 1, (H - 1) * W, H * W - 1].every((q) => a[q * 4 + 3] > 250);
+    if (opaqueCorners && tol > 0) {
+      // flood fill from every border pixel that matches the average border colour
+      let r = 0, gg = 0, b = 0, cnt = 0;
+      const border = [];
+      for (let x = 0; x < W; x++) border.push(x, (H - 1) * W + x);
+      for (let y = 0; y < H; y++) border.push(y * W, y * W + W - 1);
+      for (const q of border) { r += a[q * 4]; gg += a[q * 4 + 1]; b += a[q * 4 + 2]; cnt++; }
+      r /= cnt; gg /= cnt; b /= cnt;
+      const dist = (q) => Math.hypot(a[q * 4] - r, a[q * 4 + 1] - gg, a[q * 4 + 2] - b);
+      const seen = new Uint8Array(W * H), stack = [];
+      for (const q of border) if (!seen[q] && dist(q) <= tol) { seen[q] = 1; stack.push(q); }
+      while (stack.length) {
+        const q = stack.pop(); a[q * 4 + 3] = 0;
+        const x = q % W, y = (q / W) | 0;
+        for (const nq of [x > 0 ? q - 1 : -1, x < W - 1 ? q + 1 : -1, y > 0 ? q - W : -1, y < H - 1 ? q + W : -1]) {
+          if (nq >= 0 && !seen[nq] && dist(nq) <= tol) { seen[nq] = 1; stack.push(nq); }
+        }
+      }
+      // soften the 1px fringe next to removed pixels
+      for (let q = 0; q < W * H; q++) {
+        if (!a[q * 4 + 3]) continue;
+        const x = q % W, y = (q / W) | 0;
+        if ((x > 0 && !a[(q - 1) * 4 + 3]) || (x < W - 1 && !a[(q + 1) * 4 + 3]) || (y > 0 && !a[(q - W) * 4 + 3]) || (y < H - 1 && !a[(q + W) * 4 + 3])) a[q * 4 + 3] = Math.min(a[q * 4 + 3], dist(q) < tol * 1.8 ? 90 : 200);
+      }
+      g.putImageData(d, 0, 0);
+    }
+    // trim to the visible character
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (a[(y * W + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) { state.cut = null; setStatus("Tách nền làm mất hết ảnh. Hãy giảm “Độ mạnh tách nền”.", true); drawCutPreview(); return; }
+    const out = document.createElement("canvas"); out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+    out.getContext("2d").drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+    state.cut = out; drawCutPreview();
+  }
+  function drawCutPreview() {
+    const cv = $("cutPreview"), g = cv.getContext("2d"); g.clearRect(0, 0, cv.width, cv.height);
+    if (!state.cut) {
+      g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--muted"); g.font = "500 15px 'Be Vietnam Pro', sans-serif"; g.textAlign = "center";
+      g.fillText("Chưa có ảnh nhân vật", cv.width / 2, cv.height / 2); return;
+    }
+    const k = Math.min((cv.width - 16) / state.cut.width, (cv.height - 16) / state.cut.height);
+    const w = state.cut.width * k, h = state.cut.height * k; g.drawImage(state.cut, (cv.width - w) / 2, (cv.height - h) / 2, w, h);
+  }
+  function loadFull(file) {
+    if (!file || !file.type.startsWith("image/")) { setStatus("File này không phải ảnh. Hãy chọn ảnh JPG hoặc PNG.", true); return; }
+    const img = new Image();
+    img.onload = () => { state.fullImg = img; processFull(); refresh(); setStatus("Đã nhận ảnh. Nếu nền chưa sạch, chỉnh “Độ mạnh tách nền”."); };
+    img.onerror = () => setStatus("Không đọc được ảnh này. Thử ảnh khác nhé.", true);
+    img.src = URL.createObjectURL(file);
+  }
+  $("pickFull").onclick = () => $("fileFull").click();
+  $("fileFull").onchange = (e) => loadFull(e.target.files[0]);
+  const dropFull = $("dropFull");
+  ["dragover", "dragenter"].forEach((ev) => dropFull.addEventListener(ev, (e) => { e.preventDefault(); dropFull.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((ev) => dropFull.addEventListener(ev, () => dropFull.classList.remove("over")));
+  dropFull.addEventListener("drop", (e) => { e.preventDefault(); loadFull(e.dataTransfer.files[0]); });
+  let tolTimer = 0;
+  $("bgTol").oninput = () => { clearTimeout(tolTimer); tolTimer = setTimeout(() => { processFull(); refresh(); }, 120); };
+  $("faceLeft").onchange = () => refresh();
+  document.querySelectorAll(".mode").forEach((btn) => btn.onclick = () => {
+    state.mode = btn.dataset.mode;
+    document.querySelectorAll(".mode").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+    $("photoMode").hidden = state.mode !== "photo"; $("faceMode").hidden = state.mode === "photo";
+    $("artStyle").value = state.mode === "photo" ? "smooth" : "pixel";
+    drawCutPreview(); refresh();
+  });
 
   // ---------- Body picker, chips, preview ----------
   const bodiesEl = $("bodies");
@@ -533,8 +676,10 @@ ol.how b { color: var(--ink); font-weight: 600; }
       const webp = await new Promise((res) => sheet.toBlob(res, "image/webp", 0.92));
       if (!webp || webp.type !== "image/webp") throw { code: "webp", message: "Trình duyệt này không xuất được ảnh WebP. Hãy mở trang bằng Chrome hoặc Edge." };
       const name = ($("petName").value || "Pet của mình").trim().slice(0, 40), id = slug(name);
+      if (state.mode === "photo" && !state.cut) throw { code: "nophoto", message: "Hãy chọn ảnh nhân vật trước khi tải gói pet." };
       const body = BODIES.find((b) => b.id === state.body);
-      const petJson = { id, displayName: name, description: `${body.label} tự làm bằng Xưởng Pet Mặt Mình của KenDev.`, spritesheetPath: "spritesheet.webp" };
+      const kind = state.mode === "photo" ? "Pet từ ảnh" : body.label;
+      const petJson = { id, displayName: name, description: `${kind} tự làm bằng Xưởng Pet của KenDev.`, spritesheetPath: "spritesheet.webp" };
       const blob = zip([
         { name: "pet.json", data: new TextEncoder().encode(JSON.stringify(petJson, null, 2)) },
         { name: "spritesheet.webp", data: new Uint8Array(await webp.arrayBuffer()) },
@@ -547,7 +692,7 @@ ol.how b { color: var(--ink); font-weight: 600; }
     } finally { btn.disabled = false; }
   };
 
-  renderCrop(); refresh(); requestAnimationFrame(tick);
+  renderCrop(); drawCutPreview(); refresh(); requestAnimationFrame(tick);
   document.fonts?.ready.then(refresh);
 })();
 </script>
