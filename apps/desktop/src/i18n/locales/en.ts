@@ -227,7 +227,7 @@ export const en = {
   "pets.studio.eyebrow": "Pet Studio",
   "pets.studio.title": "Make your own pet",
   "pets.studio.titleNoResults": "Can't find it? Make it",
-  "pets.studio.body": "Describe a pet or upload a photo. Studio draws every animation, ready to install.",
+  "pets.studio.body": "Pick a body, add your face photo. The studio draws every animation and exports a file for Import pet.",
   "pets.studio.action": "Open Pet Studio",
   "pets.studio.artAlt": "A cat photo hatching from an egg into a pixel-art pet",
 

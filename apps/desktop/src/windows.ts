@@ -45,6 +45,7 @@ import { registerPluginAssetProtocol } from "./plugin-asset-protocol.js";
 import { installControlCenterPluginIpcHandlers } from "./control-center-plugin-ipc.js";
 import { installControlCenterAgentSetupIpcHandlers } from "./control-center-agent-setup-ipc.js";
 import { openExternalUrl } from "./external-url-opener.js";
+import { openBundledPetStudio } from "./pet-studio.js";
 import { installControlCenterRemoteIpcHandlers } from "./control-center-remote-ipc.js";
 import { installControlCenterWhatsNewIpcHandlers } from "./control-center-whats-new-ipc.js";
 import { installControlCenterAnnouncementsIpcHandlers } from "./control-center-announcements-ipc.js";
@@ -260,6 +261,7 @@ export function installInternalUiHandlers(): void {
       : dialog.showOpenDialog(options),
     stat,
     openExternal: (url) => openExternalUrl(url),
+    openPetStudio: openBundledPetStudio,
     setTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
     getAppStateSnapshot,
     getSettingsStateSnapshot,
