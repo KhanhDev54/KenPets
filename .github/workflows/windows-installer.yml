@@ -52,8 +52,25 @@ jobs:
       - name: Clean package output
         run: node apps/desktop/scripts/clean-package-output.cjs
 
+      - name: Cache electron-builder downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LOCALAPPDATA }}\electron-builder\Cache
+          key: electron-builder-win-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: electron-builder-win-
+
+      # GitHub's release CDN sometimes answers electron-builder's tool downloads
+      # with 504, so the packaging step is retried a few times before failing.
       - name: Build NSIS installer
-        run: pnpm --dir apps/desktop exec electron-builder --win nsis --x64 --publish never
+        shell: pwsh
+        run: |
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            pnpm --dir apps/desktop exec electron-builder --win nsis --x64 --publish never
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            Write-Host "electron-builder failed (attempt $attempt), retrying in 60s..."
+            Start-Sleep -Seconds 60
+          }
+          exit 1
 
       - name: Locate installer
         id: locate
