@@ -92,6 +92,9 @@ const bundledEnabledByDefault = new Set<string>([
   "openpets.focus-buddy",
   "openpets.launch-buddy",
   "openpets.fortune-cookie",
+  "openpets.water-reminder",
+  "openpets.day-routine",
+  "openpets.medicine-reminder",
 ]);
 const staleBundledPluginIds = ["openpets.daily-reminders", "openpets.pomodoro", "openpets.ambient-companion", "openpets.break-buddy", "openpets.github-notifications", "openpets.pet-pal", "openpets.quick-reminders", "openpets.wander-buddy"] as const;
 

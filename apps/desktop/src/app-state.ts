@@ -875,7 +875,8 @@ function createDefaultState(): OpenPetsStateV1 {
     preferences: {
       defaultPetId: builtInPet.id,
       openDefaultPetOnLaunch: true,
-      locale: "system",
+      // KenPets defaults to Vietnamese; users can switch to "system" or another language in Settings.
+      locale: "vi",
       appearanceTheme: defaultAppearanceTheme,
       speechBubblesEnabled: true,
       petScale: defaultPetScale,
