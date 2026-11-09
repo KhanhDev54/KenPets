@@ -2,104 +2,147 @@
 <html lang="vi">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Xưởng Pet Mặt Mình</title>
+<title>KenPets Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Be+Vietnam+Pro:wght@400;500;600&display=swap">
 <style>
-/* Layout: workbench — controls column on the left, live stage on the right; stacks on phones. */
+/* Layout: OpenPets-style pixel studio — bold ink borders with hard offset shadows,
+   pixel headings, a 3-step strip, then the workbench (controls left, stage right). */
 :root {
-  --bg: #eef2fb;
+  --bg: #f6f7fb;
   --panel: #ffffff;
-  --ink: #141a2e;
-  --muted: #56617a;
-  --line: #d3dbec;
-  --accent: #0fb5d4;
-  --accent-ink: #04212a;
-  --pink: #e8457a;
-  --teal: #0fb5d4;
-  --stage: #e3e9f6;
-  --check: #cfd8ea;
-  --glow: rgba(15,181,212,.18);
-  --font-display: "Pixelify Sans", "Trebuchet MS", system-ui, sans-serif;
+  --ink: #111111;
+  --text: #1c2233;
+  --muted: #5b6475;
+  --line: #111111;
+  --soft: #e3e8f2;
+  --accent: #2563eb;
+  --accent-ink: #ffffff;
+  --yellow: #facc15;
+  --pink: #e11d48;
+  --teal: #2563eb;
+  --stage: #edf3ff;
+  --check: #dfe7f7;
+  --glow: rgba(37,99,235,.14);
+  --shadow: 4px 4px 0 var(--ink);
+  --font-display: "Pixelify Sans", "Courier New", monospace;
   --font-body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0b1222; --panel: #121b30; --ink: #e7eefb; --muted: #94a3bf; --line: #24324f;
-    --accent: #22d3ee; --accent-ink: #04212a; --pink: #ff6f9c; --teal: #22d3ee; --stage: #0e1729; --check: #18233b; --glow: rgba(34,211,238,.16);
+    --bg: #0d1220; --panel: #151c2e; --ink: #e8edf7; --text: #e8edf7; --muted: #9aa5bb; --line: #e8edf7; --soft: #26304a;
+    --accent: #3b82f6; --accent-ink: #ffffff; --yellow: #facc15; --pink: #fb7185; --teal: #60a5fa; --stage: #1a2440; --check: #212c47; --glow: rgba(59,130,246,.18);
+    --shadow: 4px 4px 0 #000;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0b1222; --panel: #121b30; --ink: #e7eefb; --muted: #94a3bf; --line: #24324f;
-  --accent: #22d3ee; --accent-ink: #04212a; --pink: #ff6f9c; --teal: #22d3ee; --stage: #0e1729; --check: #18233b; --glow: rgba(34,211,238,.16);
+  --bg: #0d1220; --panel: #151c2e; --ink: #e8edf7; --text: #e8edf7; --muted: #9aa5bb; --line: #e8edf7; --soft: #26304a;
+  --accent: #3b82f6; --accent-ink: #ffffff; --yellow: #facc15; --pink: #fb7185; --teal: #60a5fa; --stage: #1a2440; --check: #212c47; --glow: rgba(59,130,246,.18);
+  --shadow: 4px 4px 0 #000;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
-  background: radial-gradient(1200px 500px at 70% -10%, var(--glow), transparent 60%), var(--bg); min-height: 100vh; color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 15px; line-height: 1.5; min-height: 100vh;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 20px 40px;
+  padding-block: 0 40px;
 }
-.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-header h1 { font-family: var(--font-display); font-weight: 700; letter-spacing: .01em; font-size: clamp(28px, 5vw, 40px); line-height: 1.05; margin: 0; text-wrap: balance; }
-header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
-.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 20px; align-items: start; }
-@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.12); padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.step-title { font-family: var(--font-display); font-weight: 700; font-size: 20px; margin: 0; display: flex; align-items: baseline; gap: 8px; }
-.step-title small { font-family: var(--font-body); font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
-.bodies { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.body-opt { border: 2px solid var(--line); background: var(--stage); border-radius: 12px; padding: 6px 4px 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--ink); font: inherit; font-size: 13px; }
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 3px solid var(--line); flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--ink); }
+.brand .logo { width: 36px; height: 36px; border: 3px solid var(--line); border-radius: 8px; background: var(--accent); display: grid; place-items: center; box-shadow: 2px 2px 0 var(--ink); }
+.brand b { color: var(--accent); }
+header.hero { text-align: center; padding: 18px 0 4px; }
+.eyebrow { font-family: var(--font-display); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-size: 14px; }
+header.hero h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 5.5vw, 46px); line-height: 1.1; margin: 6px 0 0; color: var(--ink); text-wrap: balance; }
+header.hero p { margin: 10px auto 0; color: var(--muted); max-width: 60ch; }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .steps { grid-template-columns: minmax(0, 1fr); } }
+.step { background: var(--panel); border: 3px solid var(--line); box-shadow: var(--shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.step-head { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; color: var(--accent); font-size: 18px; }
+.step-num { width: 30px; height: 30px; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 16px; flex: none; }
+.step p { margin: 0; color: var(--muted); font-size: 14px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 3px solid var(--line); box-shadow: var(--shadow); padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.step-title { font-family: var(--font-display); font-weight: 700; font-size: 21px; margin: 0; display: flex; align-items: baseline; gap: 8px; color: var(--ink); }
+.step-title small { font-family: var(--font-display); font-size: 12px; color: #fff; background: var(--accent); padding: 1px 7px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.bodies { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.body-opt { border: 3px solid var(--soft); background: var(--stage); padding: 6px 4px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; }
 .body-opt canvas { width: 100%; max-width: 72px; height: auto; }
-.body-opt[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+.body-opt[aria-pressed="true"] { border-color: var(--accent); box-shadow: 3px 3px 0 var(--accent); }
 .body-opt canvas, .stage canvas, .sheet canvas { image-rendering: pixelated; }
-.body-opt:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, .chip:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+.body-opt:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, .chip:focus-visible, a:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
 .crop-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
-.crop-box { position: relative; width: 200px; max-width: 100%; aspect-ratio: 1; border-radius: 12px; background: repeating-conic-gradient(var(--check) 0 25%, transparent 0 50%) 0 0 / 16px 16px; overflow: hidden; touch-action: none; cursor: grab; flex: none; }
+.crop-box { position: relative; width: 200px; max-width: 100%; aspect-ratio: 1; border: 3px solid var(--line); background: repeating-conic-gradient(var(--check) 0 25%, transparent 0 50%) 0 0 / 16px 16px; overflow: hidden; touch-action: none; cursor: grab; flex: none; }
 .crop-box canvas { width: 100%; height: 100%; display: block; }
 .crop-side { flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.drop { border: 2px dashed var(--line); border-radius: 12px; padding: 12px; text-align: center; color: var(--muted); font-size: 13px; }
-.drop.over { border-color: var(--accent); color: var(--ink); }
-label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
-label.f input[type="text"], select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; }
+.drop { border: 3px dashed var(--soft); padding: 12px; text-align: center; color: var(--muted); font-size: 13px; background: var(--stage); }
+.drop.over { border-color: var(--accent); color: var(--text); }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+label.f input[type="text"], select { font: inherit; font-weight: 500; color: var(--text); background: var(--panel); border: 3px solid var(--line); padding: 8px 10px; width: 100%; border-radius: 0; }
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 .colors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.colors label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-input[type="color"] { width: 36px; height: 30px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--bg); flex: none; }
-.btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
-.btn.primary { background: linear-gradient(180deg, #4fe0f5, var(--accent)); color: var(--accent-ink); border-color: transparent; font-family: var(--font-display); font-size: 19px; padding: 12px 18px; box-shadow: 0 6px 18px var(--glow); }
-.btn:disabled { opacity: .5; cursor: not-allowed; }
-.stage { background: radial-gradient(circle at 50% 75%, var(--glow), transparent 55%), linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 24px 24px, linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 24px 24px, var(--stage); border-radius: 14px; display: grid; place-items: center; padding: 12px; position: relative; }
+.colors label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+input[type="color"] { width: 38px; height: 32px; border: 3px solid var(--line); padding: 1px; background: var(--panel); flex: none; }
+.btn { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .04em; padding: 9px 16px; border: 3px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; box-shadow: 3px 3px 0 var(--ink); transition: transform .06s, box-shadow .06s; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+.btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); font-size: 20px; padding: 12px 18px; text-transform: uppercase; }
+.btn.yellow { background: var(--yellow); color: #111; }
+.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.stage { border: 3px solid var(--line); background: radial-gradient(circle at 50% 78%, var(--glow), transparent 55%), var(--stage); display: grid; place-items: center; padding: 12px; position: relative; }
+.stage::before, .stage::after { content: ""; position: absolute; width: 8px; height: 8px; background: var(--accent); opacity: .35; }
+.stage::before { top: 8px; left: 8px; } .stage::after { bottom: 8px; right: 8px; }
+.stage .tag { position: absolute; top: 8px; right: 8px; background: var(--yellow); color: #111; border: 2px solid #111; font-family: var(--font-display); font-weight: 700; font-size: 12px; padding: 0 6px; letter-spacing: .06em; }
 .stage canvas { width: 288px; max-width: 100%; height: auto; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { font: inherit; font-size: 13px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
-.chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
-.chip .k { color: var(--muted); font-size: 11px; }
+.chip { font: inherit; font-size: 13px; font-weight: 600; padding: 4px 10px; border: 2px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.chip .k { color: var(--muted); font-size: 11px; font-weight: 500; }
 .chip[aria-pressed="true"] .k { color: inherit; opacity: .7; }
-.sheet { overflow-x: auto; border-radius: 10px; background: repeating-conic-gradient(var(--check) 0 25%, transparent 0 50%) 0 0 / 12px 12px; }
+.sheet { overflow-x: auto; border: 3px solid var(--line); background: repeating-conic-gradient(var(--check) 0 25%, transparent 0 50%) 0 0 / 12px 12px; }
 .sheet canvas { display: block; width: 100%; min-width: 320px; height: auto; }
-.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; background: var(--stage); border-radius: 12px; }
-.mode { font: inherit; font-weight: 600; font-size: 14px; border: 0; border-radius: 9px; padding: 9px 8px; background: transparent; color: var(--muted); cursor: pointer; }
-.mode[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.18); }
-.cut-box { width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; background: repeating-conic-gradient(var(--check) 0 25%, transparent 0 50%) 0 0 / 16px 16px; display: grid; place-items: center; overflow: hidden; }
+.modes { display: grid; grid-template-columns: 1fr 1fr; border: 3px solid var(--line); }
+.mode { font-family: var(--font-display); font-weight: 700; font-size: 16px; border: 0; padding: 10px 8px; background: var(--panel); color: var(--muted); cursor: pointer; }
+.mode + .mode { border-left: 3px solid var(--line); }
+.mode[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.cut-box { width: 100%; aspect-ratio: 4 / 3; border: 3px solid var(--line); background: repeating-conic-gradient(var(--check) 0 25%, transparent 0 50%) 0 0 / 16px 16px; display: grid; place-items: center; overflow: hidden; }
 .cut-box canvas { max-width: 100%; max-height: 100%; }
-.check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
 [hidden] { display: none !important; }
+.ai { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; background: var(--panel); border: 3px solid var(--line); box-shadow: var(--shadow); padding: 16px 18px; }
+@media (max-width: 640px) { .ai { grid-template-columns: minmax(0, 1fr); } }
+.ai h2 { font-family: var(--font-display); font-weight: 700; font-size: 22px; margin: 4px 0 4px; color: var(--ink); }
+.ai p { margin: 0; color: var(--muted); font-size: 14px; }
+.badge { display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: .08em; padding: 0 6px; color: #fff; background: var(--pink); }
 .status { font-size: 13px; color: var(--muted); min-height: 1.5em; }
-.status.err { color: var(--pink); }
+.status.err { color: var(--pink); font-weight: 600; }
 ol.how { margin: 0; padding-left: 20px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
-ol.how b { color: var(--ink); font-weight: 600; }
+ol.how b { color: var(--text); font-weight: 600; }
 .note { font-size: 12.5px; color: var(--muted); margin: 0; }
-@media (prefers-reduced-motion: reduce) { .stage canvas { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 </style>
 
 <div class="wrap">
-  <header>
-    <h1>Xưởng Pet Mặt Mình <span style="color:var(--accent)">KenPets</span></h1>
-    <p>Chọn dáng người nhỏ hoặc thú cưng, tải ảnh mặt lên, rồi tải gói pet về để cài vào KenPets. Ảnh chỉ được xử lý ngay trên trình duyệt của bạn, không gửi đi đâu.</p>
+  <div class="topbar">
+    <div class="brand"><span class="logo" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 20 20" fill="#fff"><circle cx="5" cy="7" r="2.2"/><circle cx="10" cy="4.5" r="2.2"/><circle cx="15" cy="7" r="2.2"/><ellipse cx="10" cy="13" rx="5" ry="4.2"/></svg></span>Ken<b>Pets</b> Studio</div>
+    <a class="btn yellow" href="https://openpets.dev/studio" target="_blank" rel="noopener">✦ Studio AI của OpenPets</a>
+  </div>
+
+  <header class="hero">
+    <div class="eyebrow">Xưởng pet của KenDev</div>
+    <h1>Ba bước có pet của riêng bạn</h1>
+    <p>Ghép ảnh mặt vào thân dễ thương, hoặc biến một ảnh nhân vật thành pet biết chạy nhảy. Ảnh chỉ xử lý ngay trên máy bạn, không gửi đi đâu.</p>
   </header>
+
+  <div class="steps">
+    <div class="step"><div class="step-head"><span class="step-num">1</span>Chọn cách làm</div><p>Ghép mặt vào thân người/thú, hoặc tải lên một ảnh nhân vật nguyên con.</p></div>
+    <div class="step"><div class="step-head"><span class="step-num">2</span>Chỉnh cho đẹp</div><p>Căn mặt, đổi màu, chọn kiểu pixel hay mịn, xem thử đủ 9 động tác.</p></div>
+    <div class="step"><div class="step-head"><span class="step-num">3</span>Mang về KenPets</div><p>Tải gói .zip rồi vào KenPets → Pet → Nhập pet là xong.</p></div>
+  </div>
 
   <div class="grid">
     <section class="panel" aria-label="Tùy chỉnh">
@@ -159,7 +202,7 @@ ol.how b { color: var(--ink); font-weight: 600; }
 
     <section class="panel" aria-label="Xem trước">
       <h2 class="step-title">Xem trước</h2>
-      <div class="stage"><canvas id="preview" width="384" height="416" aria-label="Pet đang chuyển động"></canvas></div>
+      <div class="stage"><span class="tag">★ XEM THỬ</span><canvas id="preview" width="384" height="416" aria-label="Pet đang chuyển động"></canvas></div>
       <div class="chips" id="chips" role="group" aria-label="Chọn động tác"></div>
       <button class="btn primary" id="export" type="button">Tải gói pet (.zip)</button>
       <div class="status" id="status" role="status"></div>
@@ -174,6 +217,14 @@ ol.how b { color: var(--ink); font-weight: 600; }
       </details>
     </section>
   </div>
+  <section class="ai" aria-labelledby="aiTitle">
+    <div>
+      <span class="badge">STUDIO AI</span>
+      <h2 id="aiTitle">Muốn pet đẹp như họa sĩ vẽ?</h2>
+      <p>Studio của OpenPets dùng AI vẽ lại ảnh thú cưng của bạn thành pet chibi và vẽ từng khung hình cho mọi động tác. Làm xong, bấm Download để tải .zip, rồi vào KenPets → Pet → Nhập pet. Studio đó do OpenPets vận hành, có thể yêu cầu đăng nhập.</p>
+    </div>
+    <a class="btn primary" href="https://openpets.dev/studio" target="_blank" rel="noopener">Mở Studio AI →</a>
+  </section>
   <footer class="note" style="text-align:center">Làm bởi KenDev · KenPets</footer>
 </div>
 
