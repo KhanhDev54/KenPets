@@ -157,6 +157,10 @@ ol.how b { color: var(--text); font-weight: 600; }
         <div class="cut-box"><canvas id="cutPreview" width="320" height="240"></canvas></div>
         <label class="f" for="bgTol">Độ mạnh tách nền <input type="range" id="bgTol" min="0" max="120" step="1" value="40"></label>
         <label class="check"><input type="checkbox" id="faceLeft"> Nhân vật đang nhìn sang trái</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn" id="markEyes" type="button">👀 Chấm 2 mắt để pet chớp mắt</button>
+          <button class="btn" id="clearEyes" type="button">Xóa chấm</button>
+        </div>
         <p class="note">Ảnh đẹp nhất là nhân vật đứng một mình trên nền trơn (trắng hoặc một màu), hoặc PNG đã xóa nền. Có thể nhờ AI vẽ: “chibi cute character, full body, plain white background”.</p>
       </div>
 
@@ -247,7 +251,7 @@ ol.how b { color: var(--text); font-weight: 600; }
     { id: "dog", label: "Cún", kind: "animal", ears: "dog" },
   ];
 
-  const state = { mode: "face", cut: null, fullImg: null, body: "boy", face: null, img: null, zoom: 1.3, rot: 0, panX: 0, panY: 0, anim: "waving" };
+  const state = { mode: "face", cut: null, fullImg: null, palette: null, eyes: [], lidColors: [], cutBox: null, pickingEyes: false, cutView: null, body: "boy", face: null, img: null, zoom: 1.3, rot: 0, panX: 0, panY: 0, anim: "waving" };
   const $ = (id) => document.getElementById(id);
   const colors = () => ({ outfit: $("cOutfit").value, hair: $("cHair").value, skin: $("cSkin").value });
 
@@ -448,6 +452,48 @@ ol.how b { color: var(--text); font-weight: 600; }
   const outC = document.createElement("canvas"); outC.width = FW; outC.height = FH;
   const tinyC = document.createElement("canvas"); tinyC.width = FW / PX; tinyC.height = FH / PX;
   const silC = document.createElement("canvas"); silC.width = FW; silC.height = FH;
+  // Pixel-art palette for photo pets: k-means over the character's own colours, plus the
+  // effect colours, so the pixel version reads as hand-picked colours instead of photo noise.
+  const FX_COLORS = [[255, 201, 60], [239, 79, 123], [111, 182, 255], [34, 211, 238], [154, 167, 187], [108, 122, 144], [31, 158, 140], [255, 255, 255], [138, 151, 173], [42, 31, 29]];
+  function buildPalette(canvas, K = 22) {
+    const g = canvas.getContext("2d", { willReadFrequently: true }), a = g.getImageData(0, 0, canvas.width, canvas.height).data;
+    const px = [], step = Math.max(1, Math.floor((a.length / 4) / 6000));
+    for (let q = 0; q < a.length / 4; q += step) if (a[q * 4 + 3] > 200) px.push([a[q * 4], a[q * 4 + 1], a[q * 4 + 2]]);
+    if (px.length < K) return null;
+    let cent = Array.from({ length: K }, (_, i) => px[Math.floor((i + 0.5) * px.length / K)].slice());
+    for (let it = 0; it < 10; it++) {
+      const sum = cent.map(() => [0, 0, 0, 0]);
+      for (const c of px) { let best = 0, bd = Infinity; cent.forEach((m, j) => { const dd = (c[0] - m[0]) ** 2 + (c[1] - m[1]) ** 2 + (c[2] - m[2]) ** 2; if (dd < bd) { bd = dd; best = j; } }); const s2 = sum[best]; s2[0] += c[0]; s2[1] += c[1]; s2[2] += c[2]; s2[3]++; }
+      cent = cent.map((m, j) => sum[j][3] ? [sum[j][0] / sum[j][3], sum[j][1] / sum[j][3], sum[j][2] / sum[j][3]] : m);
+    }
+    return [...cent.map((m) => m.map(Math.round)), ...FX_COLORS];
+  }
+  function quantize(a, pal) {
+    for (let k = 0; k < a.length; k += 4) {
+      if (!a[k + 3]) continue;
+      let best = pal[0], bd = Infinity;
+      for (const m of pal) { const dd = (a[k] - m[0]) ** 2 + (a[k + 1] - m[1]) ** 2 + (a[k + 2] - m[2]) ** 2; if (dd < bd) { bd = dd; best = m; } }
+      a[k] = best[0]; a[k + 1] = best[1]; a[k + 2] = best[2];
+    }
+  }
+  // Closed eyelids painted over the two eyes the user marked on the photo.
+  function eyesInCut() {
+    if (!state.cut || state.eyes.length < 2 || !state.cutBox) return null;
+    const pts = state.eyes.map((e) => ({ x: e.x - state.cutBox.x0, y: e.y - state.cutBox.y0 }));
+    const r = Math.max(3, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) * 0.2);
+    return { pts, r };
+  }
+  function drawLids(g, k, w, h) {
+    const ey = eyesInCut(); if (!ey) return;
+    for (const [n, pt] of ey.pts.entries()) {
+      const x = -w / 2 + pt.x * k, y = -h + pt.y * k, r = ey.r * k;
+      g.fillStyle = state.lidColors[n] || "#f3d2b6";
+      g.beginPath(); g.ellipse(x, y, r * 1.15, r * 1.05, 0, 0, 7); g.fill();
+      g.strokeStyle = "#2a1f1d"; g.lineWidth = Math.max(2, r * 0.28); g.lineCap = "round";
+      g.beginPath(); g.arc(x, y - r * 0.35, r * 0.95, Math.PI * 0.2, Math.PI * 0.8); g.stroke();
+    }
+  }
+
   // "Pet from one photo": the cut-out character is animated as a puppet (bounce, lean,
   // squash, flip) using the same per-state poses as the drawn bodies.
   function drawPhotoFrame(g, stateId, i, n) {
@@ -468,6 +514,7 @@ ol.how b { color: var(--text); font-weight: 600; }
     g.translate(96, ground + dy); g.rotate(rot); g.scale(sx * flip, sy);
     if (p.sad) g.filter = "grayscale(.45) brightness(.88)";
     g.drawImage(cut, -w / 2, -h, w, h);
+    if (p.blink || (stateId === "waiting" && i === 4) || (stateId === "review" && i === 2)) drawLids(g, k, w, h);
     g.restore();
     if (p.prop === "laptop") {
       g.fillStyle = "#9aa7bb"; rr(g, 58, 150, 76, 40, 6); g.fill();
@@ -494,6 +541,7 @@ ol.how b { color: var(--text); font-weight: 600; }
         if (a[k + 3] < 110) { a[k + 3] = 0; continue; }
         const al = a[k + 3] / 255; a[k] = Math.min(255, a[k] / al); a[k + 1] = Math.min(255, a[k + 1] / al); a[k + 2] = Math.min(255, a[k + 2] / al); a[k + 3] = 255;
       }
+      if (state.mode === "photo" && state.palette) quantize(a, state.palette);
       tg.putImageData(d, 0, 0);
       rg.clearRect(0, 0, FW, FH); rg.imageSmoothingEnabled = false; rg.drawImage(tinyC, 0, 0, FW, FH);
       src = rawC;
@@ -604,7 +652,19 @@ ol.how b { color: var(--text); font-weight: 600; }
     if (x1 < 0) { state.cut = null; setStatus("Tách nền làm mất hết ảnh. Hãy giảm “Độ mạnh tách nền”.", true); drawCutPreview(); return; }
     const out = document.createElement("canvas"); out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
     out.getContext("2d").drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
-    state.cut = out; drawCutPreview();
+    state.cut = out; state.cutBox = { x0, y0 };
+    state.palette = buildPalette(out);
+    sampleLids(); drawCutPreview();
+  }
+  function sampleLids() {
+    state.lidColors = [];
+    const ey = eyesInCut(); if (!ey) return;
+    const g = state.cut.getContext("2d", { willReadFrequently: true });
+    for (const pt of ey.pts) {
+      const sx = Math.round(Math.min(state.cut.width - 1, Math.max(0, pt.x))), sy = Math.round(Math.min(state.cut.height - 1, Math.max(0, pt.y - ey.r * 1.9)));
+      const d = g.getImageData(sx, sy, 1, 1).data;
+      state.lidColors.push(d[3] > 40 ? `rgb(${d[0]},${d[1]},${d[2]})` : "#f3d2b6");
+    }
   }
   function drawCutPreview() {
     const cv = $("cutPreview"), g = cv.getContext("2d"); g.clearRect(0, 0, cv.width, cv.height);
@@ -613,12 +673,28 @@ ol.how b { color: var(--text); font-weight: 600; }
       g.fillText("Chưa có ảnh nhân vật", cv.width / 2, cv.height / 2); return;
     }
     const k = Math.min((cv.width - 16) / state.cut.width, (cv.height - 16) / state.cut.height);
-    const w = state.cut.width * k, h = state.cut.height * k; g.drawImage(state.cut, (cv.width - w) / 2, (cv.height - h) / 2, w, h);
+    const w = state.cut.width * k, h = state.cut.height * k, ox = (cv.width - w) / 2, oy = (cv.height - h) / 2;
+    g.drawImage(state.cut, ox, oy, w, h);
+    state.cutView = { k, ox, oy };
+    for (const e of state.eyes) {
+      const x = ox + (e.x - state.cutBox.x0) * k, y = oy + (e.y - state.cutBox.y0) * k;
+      g.strokeStyle = "#2563eb"; g.lineWidth = 3; g.beginPath(); g.arc(x, y, 7, 0, 7); g.stroke();
+      g.fillStyle = "#facc15"; g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill();
+    }
   }
+  $("cutPreview").addEventListener("click", (e) => {
+    if (!state.pickingEyes || !state.cut || !state.cutView) return;
+    const cv = $("cutPreview"), rect = cv.getBoundingClientRect(), sx = cv.width / rect.width, sy = cv.height / rect.height;
+    const v = state.cutView, x = ((e.clientX - rect.left) * sx - v.ox) / v.k + state.cutBox.x0, y = ((e.clientY - rect.top) * sy - v.oy) / v.k + state.cutBox.y0;
+    state.eyes.push({ x, y });
+    if (state.eyes.length >= 2) { state.pickingEyes = false; $("cutPreview").style.cursor = ""; sampleLids(); setStatus("Đã chấm 2 mắt. Xem động tác “Đứng chơi” để thấy pet chớp mắt."); }
+    else setStatus("Giờ bấm vào mắt còn lại.");
+    drawCutPreview(); refresh();
+  });
   function loadFull(file) {
     if (!file || !file.type.startsWith("image/")) { setStatus("File này không phải ảnh. Hãy chọn ảnh JPG hoặc PNG.", true); return; }
     const img = new Image();
-    img.onload = () => { state.fullImg = img; processFull(); refresh(); setStatus("Đã nhận ảnh. Nếu nền chưa sạch, chỉnh “Độ mạnh tách nền”."); };
+    img.onload = () => { state.fullImg = img; state.eyes = []; state.lidColors = []; processFull(); refresh(); setStatus("Đã nhận ảnh. Nếu nền chưa sạch, chỉnh “Độ mạnh tách nền”."); };
     img.onerror = () => setStatus("Không đọc được ảnh này. Thử ảnh khác nhé.", true);
     img.src = URL.createObjectURL(file);
   }
@@ -631,6 +707,12 @@ ol.how b { color: var(--text); font-weight: 600; }
   let tolTimer = 0;
   $("bgTol").oninput = () => { clearTimeout(tolTimer); tolTimer = setTimeout(() => { processFull(); refresh(); }, 120); };
   $("faceLeft").onchange = () => refresh();
+  $("markEyes").onclick = () => {
+    if (!state.cut) { setStatus("Hãy chọn ảnh nhân vật trước.", true); return; }
+    state.eyes = []; state.pickingEyes = true; $("cutPreview").style.cursor = "crosshair";
+    setStatus("Bấm vào giữa một mắt trên ảnh phía trên."); drawCutPreview();
+  };
+  $("clearEyes").onclick = () => { state.eyes = []; state.lidColors = []; state.pickingEyes = false; drawCutPreview(); refresh(); };
   document.querySelectorAll(".mode").forEach((btn) => btn.onclick = () => {
     state.mode = btn.dataset.mode;
     document.querySelectorAll(".mode").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
