@@ -114,7 +114,7 @@ export function refreshTrayMenu(): void {
     {
       label: t("tray.website"),
       click: () => {
-        void openExternalUrl("https://openpets.dev/").catch((error: unknown) => {
+        void openExternalUrl("https://github.com/KhanhDev54/KenPets").catch((error: unknown) => {
           warn("tray", "website open failed", { reason: error instanceof Error ? error.message : String(error) });
         });
       },

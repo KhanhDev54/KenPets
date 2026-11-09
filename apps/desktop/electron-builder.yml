@@ -2,7 +2,7 @@ appId: dev.kenpets.app
 productName: KenPets
 executableName: openpets
 protocols:
-  - name: OpenPets Teams enrollment
+  - name: KenPets Teams enrollment
     schemes:
       - openpets
 copyright: Copyright © 2026 KenDev. Based on OpenPets, Copyright © 2026 OpenPets (MIT)

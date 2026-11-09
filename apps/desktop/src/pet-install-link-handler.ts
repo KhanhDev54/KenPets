@@ -42,7 +42,7 @@ export function createPetInstallLinkHandler(deps: PetInstallLinkHandlerDependenc
       deps.log("warn", "pet install link rejected", { reason: parsed.reason });
       await deps.showError({
         title: "Can't add pet",
-        message: "This OpenPets install link isn't valid.",
+        message: "This KenPets install link isn't valid.",
         detail: parsed.reason,
       });
       return;
@@ -72,8 +72,8 @@ export function createPetInstallLinkHandler(deps: PetInstallLinkHandlerDependenc
     });
 
     const confirmed = await deps.confirmInstall({
-      title: "Add pet to OpenPets",
-      message: `Add ${label} to OpenPets?`,
+      title: "Add pet to KenPets",
+      message: `Add ${label} to KenPets?`,
       detail: `It will be downloaded from ${link.zipHost}. Only install pets from sites you trust.`,
     });
     if (!confirmed) {
@@ -92,7 +92,7 @@ export function createPetInstallLinkHandler(deps: PetInstallLinkHandlerDependenc
       });
       await deps.showError({
         title: "Can't add pet",
-        message: `${capitalize(label)} couldn't be added to OpenPets.`,
+        message: `${capitalize(label)} couldn't be added to KenPets.`,
         detail: reason,
       });
       return;

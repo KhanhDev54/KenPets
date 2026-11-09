@@ -261,7 +261,7 @@ export function installControlCenterPetManagementIpcHandlers({
       title: "Install pet from ZIP",
       buttonLabel: "Install Pet",
       properties: ["openFile"],
-      filters: [{ name: "OpenPets ZIP", extensions: ["zip"] }],
+      filters: [{ name: "KenPets ZIP", extensions: ["zip"] }],
     } : {
       title: "Install pet from folder",
       buttonLabel: "Install Pet",

@@ -56,7 +56,7 @@ export function createBuiltInPetRender(paused: boolean, display: PetTransientDis
   const hasPinned = Boolean(pluginBubbles?.pinned);
   const isVoiceActive = petRole === "default" && display?.suppressReactionMessage === true;
   const canSubmitRecording = isVoiceActive && display?.canSubmitRecording === true;
-  const bodyHtml = createPetBodyMarkup("OpenPets default pet", createBubbleMarkup(display, paused, badge, dismissToken, pluginBubbles), `<div class="sprite" role="img" aria-label="Claude animated default pet"></div>`, createPinnedBubbleMarkup(pluginBubbles), hasPinned, petRole, isVoiceActive, canSubmitRecording);
+  const bodyHtml = createPetBodyMarkup("KenPets default pet", createBubbleMarkup(display, paused, badge, dismissToken, pluginBubbles), `<div class="sprite" role="img" aria-label="Claude animated default pet"></div>`, createPinnedBubbleMarkup(pluginBubbles), hasPinned, petRole, isVoiceActive, canSubmitRecording);
   const reactionState = getEffectiveReactionSpriteState(display?.reaction, badge);
   const waitingAnimationDurationMs = getAppStateSnapshot().preferences.waitingAnimationDurationMs;
   const hudScale = getAppStateSnapshot().preferences.hudScale as HudScaleValue;

@@ -91,7 +91,7 @@ function fetchLatestRelease(): Promise<GitHubReleaseResponse> {
     const request = https.get(latestReleaseApiUrl, {
       headers: {
         Accept: "application/vnd.github+json",
-        "User-Agent": `OpenPets/${getCurrentAppVersion()}`,
+        "User-Agent": `KenPets/${getCurrentAppVersion()}`,
       },
       timeout: releaseCheckTimeoutMs,
     }, (response) => {
@@ -105,7 +105,7 @@ function fetchLatestRelease(): Promise<GitHubReleaseResponse> {
       });
       response.on("end", () => {
         if (response.statusCode === 404) {
-          reject(new Error("No public OpenPets releases found yet."));
+          reject(new Error("No public KenPets releases found yet."));
           return;
         }
         if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {

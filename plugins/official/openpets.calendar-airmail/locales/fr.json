@@ -22,7 +22,7 @@
   "command.sync.title": "Synchroniser maintenant",
   "command.sync.description": "Récupérer les événements à venir de votre agenda Google Calendar principal.",
   "command.disconnect.title": "Déconnecter Google Calendar",
-  "command.disconnect.description": "Supprimer la connexion à Google Calendar dans OpenPets.",
+  "command.disconnect.description": "Supprimer la connexion à Google Calendar dans KenPets.",
   "command.test.title": "Tester la livraison",
   "command.test.description": "Envoyer un exemple de rappel d’agenda avec le messager choisi.",
   "menu.todayCount": "{count} événement(s) restant(s) aujourd’hui",

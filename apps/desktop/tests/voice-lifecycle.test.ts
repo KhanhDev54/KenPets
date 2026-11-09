@@ -368,7 +368,7 @@ assert.equal(VOICE_MAX_RECORDING_DURATION_MS, 30_000);
   current.getAttempt().resolveAcquisition();
   await flush();
   await current.listening.shutdown();
-  await assert.rejects(pending, /OpenPets is shutting down\./);
+  await assert.rejects(pending, /KenPets is shutting down\./);
   assert.equal(current.indicator.liveTracks, 0, "capture shutdown releases microphone ownership without destroying shared state");
   assert.equal(current.getAttempt().disposeCount, 1);
 }

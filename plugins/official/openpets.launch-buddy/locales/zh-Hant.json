@@ -2,7 +2,7 @@
   "plugin.name": "Launch Buddy",
   "plugin.description": "友好的啟動問候，帶有溫和的時間、反應和可選的聲音。",
   "config.enabled.label": "啟用問候",
-  "config.enabled.description": "允許 Launch Buddy 在 OpenPets 啟動時向您問好。",
+  "config.enabled.description": "允許 Launch Buddy 在 KenPets 啟動時向您問好。",
   "config.greetingMode.label": "問候風格",
   "config.greetingMode.description": "選擇 Launch Buddy 選取訊息的方式。",
   "config.greetingMode.smart": "智慧時間感知",
@@ -51,6 +51,6 @@
   "message.smart.night": "你熬夜了——我會陪著你，保持溫馨和安靜。",
   "message.random.0": "歡迎回來！你的夥伴已經準備好了。",
   "message.random.1": "很高興再次見到你。讓我們這節會話過得充實愉快。",
-  "message.random.2": "OpenPets 醒了，我也醒了！",
+  "message.random.2": "KenPets 醒了，我也醒了！",
   "message.random.3": "你好——如果你需要鼓勵，我就在身旁。"
 }

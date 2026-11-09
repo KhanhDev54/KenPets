@@ -109,7 +109,7 @@ export class VoiceListeningService {
   }
 
   async shutdown(): Promise<void> {
-    await this.cancel("OpenPets is shutting down.");
+    await this.cancel("KenPets is shutting down.");
   }
 
   async #run(active: ActiveListen, recordingDurationMs: number, microphoneReservation?: VoiceMicrophoneReservation, inputDeviceId: string | null = null): Promise<{ text: string }> {

@@ -483,7 +483,7 @@ export function ProviderModal({
     if (voiceName && !systemVoice) {
       throw new Error(t("settings.providers.modal.test.systemVoiceUnavailable"));
     }
-    const utterance = new SpeechSynthesisUtterance("This is your OpenPets voice preview.");
+    const utterance = new SpeechSynthesisUtterance("This is your KenPets voice preview.");
     if (systemVoice) utterance.voice = systemVoice;
     speechSynthesis.cancel();
     speechSynthesis.speak(utterance);

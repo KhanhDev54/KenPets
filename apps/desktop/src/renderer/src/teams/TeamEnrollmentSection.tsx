@@ -215,7 +215,7 @@ export function TeamEnrollmentSection({
               Have an invitation from your team?
             </h3>
             <p className="m-0 mt-1 text-xs text-slatecopy dark:text-slate-300 leading-relaxed">
-              If your workplace already uses OpenPets Teams, your administrator can provide an enrollment link to connect this desktop client.
+              If your workplace already uses KenPets Teams, your administrator can provide an enrollment link to connect this desktop client.
             </p>
           </div>
         </div>

@@ -25,7 +25,7 @@ export type PetAssistantPersonalityPatch = {
 };
 
 export const defaultPetAssistantPersonality: PetAssistantPersonality = Object.freeze({
-  petName: "OpenPets",
+  petName: "KenPets",
   tone: "Warm and clear",
   style: "Friendly, grounded, and helpful.",
   ownerAddress: "there",

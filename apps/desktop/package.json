@@ -2,7 +2,7 @@
   "name": "@open-pets/desktop",
   "version": "4.1.2",
   "private": true,
-  "description": "OpenPets tray-first desktop companion app.",
+  "description": "KenPets tray-first desktop companion app.",
   "license": "MIT",
   "repository": {
     "type": "git",

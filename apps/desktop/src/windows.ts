@@ -189,7 +189,7 @@ async function getDashboardSnapshot(): Promise<{
 }> {
   const state = getAppStateSnapshot();
   const defaultPet = state.pets.installed.find((pet) => pet.id === state.preferences.defaultPetId && !pet.broken) ?? state.pets.installed[0];
-  const assetName = defaultPet?.displayName ?? "OpenPets";
+  const assetName = defaultPet?.displayName ?? "KenPets";
   const personalName = state.preferences.personality?.petName;
   const companionDisplayName = resolveCompanionDisplayName(personalName, assetName);
   const preview = await getDefaultPetPreviewSpriteInfo();
