@@ -125,6 +125,15 @@ input[type="color"] { width: 38px; height: 32px; border: 3px solid var(--line); 
 .vstage::before, .vstage::after, .vstage i::before, .vstage i::after { content: ""; position: absolute; width: 6px; height: 6px; background: var(--accent); opacity: .35; }
 .vstage::before { top: 6px; left: 6px; } .vstage::after { top: 6px; right: 6px; } .vstage i::before { bottom: 6px; left: 6px; } .vstage i::after { bottom: 6px; right: 6px; }
 .vstage canvas { width: min(62%, 300px); height: auto; image-rendering: pixelated; }
+.vctrl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.vbtn { font: inherit; font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .06em; padding: 5px 10px; border: 2px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+.vbtn[aria-pressed="true"] { background: var(--yellow); color: #111; }
+.vbtn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+.strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; flex: 1 1 100%; }
+.strip canvas { width: 44px; height: 48px; flex: none; background: var(--stage); border: 2px solid transparent; cursor: pointer; image-rendering: pixelated; }
+.strip canvas.on { border-color: var(--accent); }
+.acard { transition: transform .15s ease, border-color .15s ease, background-color .15s ease; }
+@media (prefers-reduced-motion: reduce) { .acard { transition: none; } .acard:hover { transform: none; } }
 .vdesc { margin: 0; color: var(--muted); font-size: 15px; }
 .vstats { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--soft); padding-top: 12px; text-align: center; }
 .vstats span { display: block; font-family: var(--font-display); font-size: 12px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
@@ -258,6 +267,11 @@ ol.how b { color: var(--text); font-weight: 600; }
         <span class="fr-badge" id="vBadge">6 KHUNG</span>
       </div>
       <div class="vstage"><i></i><canvas id="vCanvas" width="192" height="208" aria-label="Động tác đang chọn"></canvas></div>
+      <div class="vctrl">
+        <button class="vbtn" id="vPlay" type="button" aria-pressed="false">⏸ Dừng</button>
+        <button class="vbtn" id="vSlow" type="button" aria-pressed="false">🐢 Chậm 0.5×</button>
+        <div class="strip" id="vStrip" aria-label="Từng khung hình"></div>
+      </div>
       <p class="vdesc" id="vDesc"></p>
       <div class="vstats">
         <div><span>Hàng</span><b id="vRow">0</b></div>
@@ -316,24 +330,24 @@ ol.how b { color: var(--text); font-weight: 600; }
     const p = { dx: 0, dy: 0, lean: 0, armL: 0.15, armR: 0.15, legL: 0, legR: 0, tilt: 0, squash: 1, prop: null, fx: null, blink: false, sad: false };
     switch (stateId) {
       case "idle":
-        p.dy = [0, 1, 2, 2, 1, 0][i] || 0; p.armL = p.armR = 0.12 + p.dy * 0.02; p.blink = i === 3; p.tilt = (i - 2.5) * 0.008; break;
+        p.dy = (1 - Math.cos(t * Math.PI * 2)) * 1.1; p.armL = p.armR = 0.12 + p.dy * 0.025; p.blink = i === 3; p.tilt = Math.sin(t * Math.PI * 2) * 0.02; break;
       case "run-right": case "run-left": {
         const dir = stateId === "run-right" ? 1 : -1;
         p.legL = s * 0.65; p.legR = -s * 0.65; p.armL = 0.35 - s * 0.8 * dir; p.armR = 0.35 + s * 0.8 * dir;
         p.dy = -Math.abs(Math.cos(t * Math.PI * 2)) * 6; p.lean = 0.13 * dir; p.fx = { type: "speed", dir }; break;
       }
       case "waving":
-        p.armR = 2.55 + (i % 2 ? 0.4 : -0.1); p.armL = 0.15; p.tilt = 0.05; p.fx = { type: "hi", i }; break;
+        p.armR = 2.6 + Math.sin(t * Math.PI * 2) * 0.38; p.armL = 0.15; p.tilt = 0.04 + Math.sin(t * Math.PI * 2) * 0.03; p.fx = { type: "hi", i }; break;
       case "jumping": {
-        const h = [0, 10, 16, 10, 0][i]; p.dy = -h; p.squash = i === 0 || i === 4 ? 0.94 : 1.03;
-        p.armL = p.armR = h > 6 ? 2.5 : 0.6; p.legL = h > 6 ? 0.25 : 0; p.legR = -p.legL; p.fx = { type: "sparkle", i }; break;
+        const h = [-2, 11, 17, 9, -1][i]; p.dy = -h; p.squash = [0.9, 1.07, 1.02, 1.04, 0.93][i];
+        p.armL = p.armR = [0.5, 2.3, 2.7, 2.1, 0.8][i]; p.legL = [0, 0.3, 0.2, 0.12, 0][i]; p.legR = -p.legL; p.fx = { type: "sparkle", i }; break;
       }
       case "failed": {
         const k = Math.min(1, i / 3); p.tilt = 0.22 * k + (i > 3 ? Math.sin(i * 2) * 0.03 : 0); p.dy = 5 * k;
         p.armL = p.armR = 0.04; p.squash = 1 - 0.05 * k; p.sad = true; p.fx = { type: "sweat", i, n }; break;
       }
       case "waiting":
-        p.legR = i % 2 ? 0.28 : 0; p.tilt = Math.sin(t * Math.PI * 2) * 0.09; p.armL = p.armR = 0.3; p.fx = { type: "dots", i }; break;
+        p.legR = (1 - Math.cos(t * Math.PI * 4)) * 0.14; p.tilt = Math.sin(t * Math.PI * 2) * 0.08; p.armL = p.armR = 0.3; p.fx = { type: "dots", i }; break;
       case "running":
         p.prop = "laptop"; p.armL = -0.45 + (i % 2 ? 0.1 : 0); p.armR = -0.45 + (i % 2 ? 0 : 0.1); p.dy = i % 2; p.tilt = -0.03; break;
       case "review":
@@ -585,7 +599,9 @@ ol.how b { color: var(--text); font-weight: 600; }
   function headAngle(p, stateId, i, n) {
     const t = i / n;
     if (stateId === "idle") return Math.sin(t * Math.PI * 2) * 0.05;
-    if (stateId === "waving") return i % 2 ? -0.06 : 0.04;
+    if (stateId === "waving") return -Math.sin(t * Math.PI * 2) * 0.05;
+    if (stateId === "run-right" || stateId === "run-left") return -Math.cos(t * Math.PI * 4) * 0.035;
+    if (stateId === "jumping") return [0.03, -0.05, -0.02, 0.04, 0.05][i] || 0;
     if (stateId === "failed") return 0.12;
     if (stateId === "review") return 0.06;
     if (stateId === "waiting") return Math.sin(t * Math.PI * 2) * 0.07;
@@ -599,9 +615,9 @@ ol.how b { color: var(--text); font-weight: 600; }
     const CW = Math.ceil(w * 3), CH = Math.ceil(h * 2.6), OX = CW / 2, OY = h * 2;
     if (rigC.width !== CW || rigC.height !== CH) { rigC.width = CW; rigC.height = CH; }
     const g = rigC.getContext("2d"); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, CW, CH); g.translate(OX, OY);
-    const C = 10, R = 14, X = (u) => (u - 0.5) * w, Y = (v) => (v - 1) * h;
+    const C = 18, R = 24, X = (u) => (u - 0.5) * w, Y = (v) => (v - 1) * h;
     const legA = (x) => Math.max(-0.7, Math.min(0.7, x * 0.55));
-    const armA = (x) => Math.max(-1.6, Math.min(1.6, (x - 0.15) * 0.6));
+    const armA = (x) => Math.max(-0.12, Math.min(1.6, (x - 0.15) * 0.6)); // arms folding over the body can not be shown by a flat warp
     const head = headAngle(p, stateId, i, n);
     const map = (u, v) => {
       let x = X(u), y = Y(v);
@@ -660,10 +676,11 @@ ol.how b { color: var(--text); font-weight: 600; }
     let flip = $("faceLeft").checked ? -1 : 1;
     if (stateId === "run-left") flip *= -1;
     let rot = p.tilt + p.lean, sx = 2 - p.squash, sy = p.squash, dy = p.dy;
-    if (stateId === "waving") rot = (i % 2 ? 0.09 : -0.05);
-    if (stateId === "run-right" || stateId === "run-left") { rot = (i % 2 ? 0.06 : -0.02) * (stateId === "run-left" ? -1 : 1); sy *= i % 2 ? 0.97 : 1.02; }
-    if (stateId === "running") { sy *= i % 2 ? 0.985 : 1.01; }
-    if (stateId === "idle") { sy *= 1 - (p.dy * 0.006); dy = 0; }
+    const tt = i / n;
+    if (stateId === "waving") rot = 0.02 + Math.sin(tt * Math.PI * 2) * 0.06;
+    if (stateId === "run-right" || stateId === "run-left") { const c2 = Math.cos(tt * Math.PI * 4); rot = (0.03 + c2 * 0.03) * (stateId === "run-left" ? -1 : 1); sy *= 1 - c2 * 0.025; sx *= 1 + c2 * 0.015; }
+    if (stateId === "running") { sy *= 1 + Math.sin(tt * Math.PI * 4) * 0.012; }
+    if (stateId === "idle") { sy *= 1 + p.dy * 0.012; sx *= 1 - p.dy * 0.005; dy = 0; }
     g.save();
     g.translate(96, ground + dy); g.rotate(rot); g.scale(sx * flip, sy);
     if (p.sad) g.filter = "grayscale(.45) brightness(.88)";
@@ -949,7 +966,7 @@ ol.how b { color: var(--text); font-weight: 600; }
     const txt = document.createElement("div");
     txt.innerHTML = `<div class="an">${s.label}</div><span class="am">Hàng ${row} · ${s.frames} khung</span>`;
     btn.append(cv, txt);
-    btn.onclick = () => { state.anim = s.id; startAt = performance.now(); syncPressed(); };
+    btn.onclick = () => { state.anim = s.id; clock = 0; paused = false; syncPlay(); buildStrip(); syncPressed(); };
     chips.append(btn);
   });
   function syncPressed() {
@@ -967,22 +984,46 @@ ol.how b { color: var(--text); font-weight: 600; }
     STATES.forEach((s, row) => { for (let i = 0; i < s.frames; i++) { g.save(); g.translate(i * FW, row * FH); g.beginPath(); g.rect(0, 0, FW, FH); g.clip(); drawFrame(g, state.body, s.id, i, s.frames); g.restore(); } });
   }
   const prev = $("preview"), pg = prev.getContext("2d");
-  let startAt = performance.now();
+  // own clock so the viewer can pause, slow down and step through frames
+  let clock = 0, last = performance.now(), paused = false, speed = 1, pinned = -1;
+  function syncPlay() {
+    $("vPlay").textContent = paused ? "▶ Chạy" : "⏸ Dừng"; $("vPlay").setAttribute("aria-pressed", String(paused));
+    $("vSlow").setAttribute("aria-pressed", String(speed < 1));
+    if (!paused) pinned = -1;
+  }
+  $("vPlay").onclick = () => { paused = !paused; syncPlay(); };
+  $("vSlow").onclick = () => { speed = speed < 1 ? 1 : 0.5; syncPlay(); };
+  function buildStrip() {
+    const st = STATES.find((x) => x.id === state.anim), strip = $("vStrip"); strip.textContent = "";
+    for (let f = 0; f < st.frames; f++) {
+      const cv = document.createElement("canvas"); cv.width = FW; cv.height = FH; cv.title = `Khung ${f + 1}`;
+      cv.onclick = () => { paused = true; pinned = f; syncPlay(); };
+      strip.append(cv);
+    }
+  }
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   function tick(now) {
     const s = STATES.find((x) => x.id === state.anim);
-    const i = reduce ? 0 : Math.floor(((now - startAt) % s.ms) / (s.ms / s.frames));
+    if (!paused && !reduce) clock += (now - last) * speed;
+    last = now;
+    let i = Math.floor((clock % s.ms) / (s.ms / s.frames));
+    if (pinned >= 0) i = pinned;
     pg.setTransform(1, 0, 0, 1, 0, 0); pg.clearRect(0, 0, prev.width, prev.height); pg.scale(2, 2);
     drawFrame(pg, state.body, s.id, i, s.frames);
     // big viewer and the 9 cards copy frames from the rendered spritesheet
     const sheet = $("sheet"), row = STATES.indexOf(s);
     const vg = $("vCanvas").getContext("2d"); vg.clearRect(0, 0, FW, FH); vg.drawImage(sheet, i * FW, row * FH, FW, FH, 0, 0, FW, FH);
     chips.querySelectorAll("canvas").forEach((cv, r) => {
-      const st = STATES[r], k = reduce ? 0 : Math.floor(((now - startAt) % st.ms) / (st.ms / st.frames));
+      const st = STATES[r], k = Math.floor((clock % st.ms) / (st.ms / st.frames));
       const cg = cv.getContext("2d"); cg.clearRect(0, 0, FW, FH); cg.drawImage(sheet, k * FW, r * FH, FW, FH, 0, 0, FW, FH);
+    });
+    $("vStrip").querySelectorAll("canvas").forEach((cv, f) => {
+      const cg = cv.getContext("2d"); cg.clearRect(0, 0, FW, FH); cg.drawImage(sheet, f * FW, row * FH, FW, FH, 0, 0, FW, FH);
+      cv.classList.toggle("on", f === i);
     });
     requestAnimationFrame(tick);
   }
+  buildStrip();
   let pending = 0;
   function refreshSoon() { if (!pending) pending = requestAnimationFrame(() => { pending = 0; renderThumbs(); renderSheet($("sheet")); }); }
   function refresh() { syncPressed(); renderThumbs(); renderSheet($("sheet")); }
