@@ -164,6 +164,7 @@ ol.how b { color: var(--text); font-weight: 600; }
         </div>
         <label class="f" for="bgTol">Độ mạnh tách nền <input type="range" id="bgTol" min="0" max="120" step="1" value="40"></label>
         <label class="check"><input type="checkbox" id="faceLeft"> Nhân vật đang nhìn sang trái</label>
+        <label class="check"><input type="checkbox" id="rigOn" checked> 🦴 Cử động tay chân (bộ xương tự dò)</label>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn" id="markEyes" type="button">👀 Chấm 2 mắt để pet chớp mắt</button>
           <button class="btn" id="clearEyes" type="button">Xóa chấm</button>
@@ -258,7 +259,7 @@ ol.how b { color: var(--text); font-weight: 600; }
     { id: "dog", label: "Cún", kind: "animal", ears: "dog" },
   ];
 
-  const state = { mode: "face", cut: null, fullImg: null, palette: null, eyes: [], lidColors: [], cutBox: null, pickingEyes: false, cutView: null, aiMask: null, body: "boy", face: null, img: null, zoom: 1.3, rot: 0, panX: 0, panY: 0, anim: "waving" };
+  const state = { mode: "face", cut: null, fullImg: null, palette: null, eyes: [], lidColors: [], cutBox: null, pickingEyes: false, cutView: null, aiMask: null, rig: null, body: "boy", face: null, img: null, zoom: 1.3, rot: 0, panX: 0, panY: 0, anim: "waving" };
   const $ = (id) => document.getElementById(id);
   const colors = () => ({ outfit: $("cOutfit").value, hair: $("cHair").value, skin: $("cSkin").value });
 
@@ -475,6 +476,15 @@ ol.how b { color: var(--text); font-weight: 600; }
     }
     return [...cent.map((m) => m.map(Math.round)), ...FX_COLORS];
   }
+  // same palette as seen through the "sad" grayscale(.45) brightness(.88) filter, so sad frames stay clean
+  let sadSrc = null, sadPal = null;
+  function sadPalette(pal) {
+    if (pal !== sadSrc) {
+      sadSrc = pal;
+      sadPal = pal.map(([r, g, b]) => { const y = 0.2126 * r + 0.7152 * g + 0.0722 * b; return [r, g, b].map((v) => Math.round((v * 0.55 + y * 0.45) * 0.88)); }).concat(pal);
+    }
+    return sadPal;
+  }
   function quantize(a, pal) {
     for (let k = 0; k < a.length; k += 4) {
       if (!a[k + 3]) continue;
@@ -503,6 +513,100 @@ ol.how b { color: var(--text); font-weight: 600; }
 
   // "Pet from one photo": the cut-out character is animated as a puppet (bounce, lean,
   // squash, flip) using the same per-state poses as the drawn bodies.
+  // Simple auto-rig, idea borrowed from AnimatedDrawings (skeleton + mesh deformation), kept tiny for the browser
+  function buildRig(cut) {
+    const W = cut.width, H = cut.height, a = cut.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, W, H).data;
+    const on = (x, y) => a[(y * W + x) * 4 + 3] > 60;
+    const rows = [];
+    for (let y = 0; y < H; y++) { let l = -1, r = -1; for (let x = 0; x < W; x++) if (on(x, y)) { if (l < 0) l = x; r = x; } rows.push(l < 0 ? 0 : r - l + 1); }
+    // neck: narrowest row between 25% and 60% of the height (falls back to 40%)
+    let neck = 0.4, best = Infinity;
+    for (let y = Math.round(H * 0.25); y < H * 0.6; y++) if (rows[y] > 0 && rows[y] < best * 0.97) { best = rows[y]; neck = y / H; }
+    // hip: top of the gap between the legs, searched up from the bottom along the middle column
+    let hip = 0.74; const cx = Math.round(W / 2);
+    let y = H - 1; while (y > H * 0.45 && !on(cx, y) && !on(Math.max(0, cx - 1), y) && !on(Math.min(W - 1, cx + 1), y)) y--;
+    if (y < H - 3) hip = Math.min(0.85, Math.max(0.55, (y + 1) / H));
+    hip = Math.max(hip, neck + 0.2);
+    const shoulder = Math.min(hip - 0.12, neck + 0.06);
+    // arms: outer quarter of the widest row between shoulder and hip
+    let wl = W, wr = 0;
+    for (let yy = Math.round(H * shoulder); yy < H * hip; yy++) for (let x = 0; x < W; x++) if (on(x, yy)) { wl = Math.min(wl, x); wr = Math.max(wr, x); }
+    const span = Math.max(1, wr - wl);
+    let armL = (wl + span * 0.24) / W, armR = (wl + span * 0.76) / W, gapL = false, gapR = false;
+    // if the arms are separate from the body (a see-through gap), put the shoulder joints right at that gap
+    const runsAt = (yy) => { const out = []; let st = -1; for (let x = 0; x <= W; x++) { const o = x < W && on(x, yy); if (o && st < 0) st = x; if (!o && st >= 0) { if (x - st > 2) out.push([st, x - 1]); st = -1; } } return out; };
+    for (const f of [0.5, 0.4, 0.6]) {
+      const runs = runsAt(Math.round(H * (shoulder + (hip - shoulder) * f)));
+      if (runs.length >= 3) { armL = (runs[0][1] + 1) / W; armR = runs[runs.length - 1][0] / W; gapL = gapR = true; break; }
+    }
+    return { neck, hip, shoulder, armL, armR, gapL, gapR, legX: 0.14 };
+  }
+  function headAngle(p, stateId, i, n) {
+    const t = i / n;
+    if (stateId === "idle") return Math.sin(t * Math.PI * 2) * 0.05;
+    if (stateId === "waving") return i % 2 ? -0.06 : 0.04;
+    if (stateId === "failed") return 0.12;
+    if (stateId === "review") return 0.06;
+    if (stateId === "waiting") return Math.sin(t * Math.PI * 2) * 0.07;
+    return 0;
+  }
+  const smooth = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
+  function rotAround(x, y, px, py, ang) { const c = Math.cos(ang), s = Math.sin(ang), dx = x - px, dy = y - py; return [px + dx * c - dy * s, py + dx * s + dy * c]; }
+  const rigC = document.createElement("canvas");
+  function drawRigged(g0, cut, w, h, r, p, stateId, i, n) {
+    // draw the mesh on a scratch canvas first so filters run once and seams can be patched
+    const CW = Math.ceil(w * 3), CH = Math.ceil(h * 2.6), OX = CW / 2, OY = h * 2;
+    if (rigC.width !== CW || rigC.height !== CH) { rigC.width = CW; rigC.height = CH; }
+    const g = rigC.getContext("2d"); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, CW, CH); g.translate(OX, OY);
+    const C = 10, R = 14, X = (u) => (u - 0.5) * w, Y = (v) => (v - 1) * h;
+    const legA = (x) => Math.max(-0.7, Math.min(0.7, x * 0.55));
+    const armA = (x) => Math.max(-1.6, Math.min(1.6, (x - 0.15) * 0.6));
+    const head = headAngle(p, stateId, i, n);
+    const map = (u, v) => {
+      let x = X(u), y = Y(v);
+      // legs swing around each hip joint
+      const wl = smooth(r.hip - 0.04, r.hip + 0.06, v);
+      if (wl > 0) {
+        const left = u < 0.5, ang = (left ? legA(p.legL) : -legA(p.legR)) * wl * smooth(0.02, 0.12, Math.abs(u - 0.5) + 0.05);
+        [x, y] = rotAround(x, y, X(left ? 0.5 - r.legX : 0.5 + r.legX), Y(r.hip), ang);
+      }
+      // arms swing around the shoulders (only the outer bands of the torso)
+      if (v > r.shoulder - 0.06 && v < r.hip + 0.04) {
+        const band = v < r.shoulder ? smooth(r.shoulder - 0.06, r.shoulder, v) : 1 - smooth(r.hip - 0.04, r.hip + 0.04, v);
+        const pad = r.gapL ? 0.005 : 0.04, inn = r.gapL ? 0.03 : 0.06;
+        if (u < r.armL + pad) { const wa = smooth(r.armL + pad, r.armL - inn, u) * band; [x, y] = rotAround(x, y, X(r.armL), Y(r.shoulder), armA(p.armL) * wa); }
+        else if (u > r.armR - pad) { const wa = smooth(r.armR - pad, r.armR + inn, u) * band; [x, y] = rotAround(x, y, X(r.armR), Y(r.shoulder), -armA(p.armR) * wa); }
+      }
+      // head nods around the neck
+      const wh = 1 - smooth(r.neck - 0.05, r.neck + 0.03, v);
+      if (wh > 0 && head) [x, y] = rotAround(x, y, 0, Y(r.neck), head * wh);
+      return [x, y];
+    };
+    const pts = [];
+    for (let rI = 0; rI <= R; rI++) for (let cI = 0; cI <= C; cI++) pts.push(map(cI / C, rI / R));
+    const sw = cut.width / C, sh = cut.height / R;
+    const tri = (s0, s1, s2, d0, d1, d2) => {
+      // grow the destination triangle a little to hide seams
+      const mx = (d0[0] + d1[0] + d2[0]) / 3, my = (d0[1] + d1[1] + d2[1]) / 3, gr = (q) => [q[0] + Math.sign(q[0] - mx) * 1.1, q[1] + Math.sign(q[1] - my) * 1.1];
+      const e0 = gr(d0), e1 = gr(d1), e2 = gr(d2);
+      const den = (s1[0] - s0[0]) * (s2[1] - s0[1]) - (s2[0] - s0[0]) * (s1[1] - s0[1]); if (!den) return;
+      const a = ((d1[0] - d0[0]) * (s2[1] - s0[1]) - (d2[0] - d0[0]) * (s1[1] - s0[1])) / den;
+      const b = ((d1[1] - d0[1]) * (s2[1] - s0[1]) - (d2[1] - d0[1]) * (s1[1] - s0[1])) / den;
+      const c = ((d2[0] - d0[0]) * (s1[0] - s0[0]) - (d1[0] - d0[0]) * (s2[0] - s0[0])) / den;
+      const d = ((d2[1] - d0[1]) * (s1[0] - s0[0]) - (d1[1] - d0[1]) * (s2[0] - s0[0])) / den;
+      const e = d0[0] - a * s0[0] - c * s0[1], f = d0[1] - b * s0[0] - d * s0[1];
+      g.save(); g.beginPath(); g.moveTo(e0[0], e0[1]); g.lineTo(e1[0], e1[1]); g.lineTo(e2[0], e2[1]); g.closePath(); g.clip();
+      g.transform(a, b, c, d, e, f); g.drawImage(cut, 0, 0); g.restore();
+    };
+    for (let rI = 0; rI < R; rI++) for (let cI = 0; cI < C; cI++) {
+      const i00 = rI * (C + 1) + cI, i10 = i00 + 1, i01 = i00 + C + 1, i11 = i01 + 1;
+      const s00 = [cI * sw, rI * sh], s10 = [(cI + 1) * sw, rI * sh], s01 = [cI * sw, (rI + 1) * sh], s11 = [(cI + 1) * sw, (rI + 1) * sh];
+      tri(s00, s10, s11, pts[i00], pts[i10], pts[i11]);
+      tri(s00, s11, s01, pts[i00], pts[i11], pts[i01]);
+    }
+    g0.drawImage(rigC, -OX, -OY);
+  }
+
   function drawPhotoFrame(g, stateId, i, n) {
     const cut = state.cut, p = pose(stateId, i, n), ground = 198;
     if (!cut) {
@@ -520,8 +624,12 @@ ol.how b { color: var(--text); font-weight: 600; }
     g.save();
     g.translate(96, ground + dy); g.rotate(rot); g.scale(sx * flip, sy);
     if (p.sad) g.filter = "grayscale(.45) brightness(.88)";
-    g.drawImage(cut, -w / 2, -h, w, h);
-    if (p.blink || (stateId === "waiting" && i === 4) || (stateId === "review" && i === 2)) drawLids(g, k, w, h);
+    const rig = state.rig && $("rigOn").checked ? state.rig : null;
+    if (rig) drawRigged(g, cut, w, h, rig, p, stateId, i, n); else g.drawImage(cut, -w / 2, -h, w, h);
+    if (p.blink || (stateId === "waiting" && i === 4) || (stateId === "review" && i === 2)) {
+      if (rig) { const a = headAngle(p, stateId, i, n), py = (rig.neck - 1) * h; g.translate(0, py); g.rotate(a); g.translate(0, -py); }
+      drawLids(g, k, w, h);
+    }
     g.restore();
     if (p.prop === "laptop") {
       g.fillStyle = "#9aa7bb"; rr(g, 58, 150, 76, 40, 6); g.fill();
@@ -548,7 +656,7 @@ ol.how b { color: var(--text); font-weight: 600; }
         if (a[k + 3] < 110) { a[k + 3] = 0; continue; }
         const al = a[k + 3] / 255; a[k] = Math.min(255, a[k] / al); a[k + 1] = Math.min(255, a[k + 1] / al); a[k + 2] = Math.min(255, a[k + 2] / al); a[k + 3] = 255;
       }
-      if (state.mode === "photo" && state.palette) quantize(a, state.palette);
+      if (state.mode === "photo" && state.palette) quantize(a, pose(stateId, i, n).sad ? sadPalette(state.palette) : state.palette);
       tg.putImageData(d, 0, 0);
       rg.clearRect(0, 0, FW, FH); rg.imageSmoothingEnabled = false; rg.drawImage(tinyC, 0, 0, FW, FH);
       src = rawC;
@@ -665,6 +773,7 @@ ol.how b { color: var(--text); font-weight: 600; }
     out.getContext("2d").drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
     state.cut = out; state.cutBox = { x0, y0 };
     state.palette = buildPalette(out);
+    state.rig = buildRig(out);
     sampleLids(); drawCutPreview();
   }
   function sampleLids() {
@@ -687,6 +796,16 @@ ol.how b { color: var(--text); font-weight: 600; }
     const w = state.cut.width * k, h = state.cut.height * k, ox = (cv.width - w) / 2, oy = (cv.height - h) / 2;
     g.drawImage(state.cut, ox, oy, w, h);
     state.cutView = { k, ox, oy };
+    if (state.rig && $("rigOn").checked) {
+      const r = state.rig, P = (u, v) => [ox + u * w, oy + v * h];
+      g.save(); g.lineCap = "round"; g.lineWidth = 3; g.strokeStyle = "rgba(37,99,235,.85)"; g.fillStyle = "#facc15";
+      const neck = P(0.5, r.neck), hip = P(0.5, r.hip), shL = P(r.armL, r.shoulder), shR = P(r.armR, r.shoulder);
+      const bones = [[P(0.5, r.neck * 0.45), neck], [neck, hip], [shL, shR], [shL, P(r.armL - 0.06, r.hip)], [shR, P(r.armR + 0.06, r.hip)],
+        [hip, P(0.5 - r.legX, r.hip)], [hip, P(0.5 + r.legX, r.hip)], [P(0.5 - r.legX, r.hip), P(0.5 - r.legX, 0.98)], [P(0.5 + r.legX, r.hip), P(0.5 + r.legX, 0.98)]];
+      for (const [a, b] of bones) { g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); }
+      for (const q of [neck, hip, shL, shR, P(0.5 - r.legX, r.hip), P(0.5 + r.legX, r.hip)]) { g.beginPath(); g.arc(q[0], q[1], 4, 0, 7); g.fill(); g.stroke(); }
+      g.restore();
+    }
     for (const e of state.eyes) {
       const x = ox + (e.x - state.cutBox.x0) * k, y = oy + (e.y - state.cutBox.y0) * k;
       g.strokeStyle = "#2563eb"; g.lineWidth = 3; g.beginPath(); g.arc(x, y, 7, 0, 7); g.stroke();
@@ -756,6 +875,7 @@ ol.how b { color: var(--text); font-weight: 600; }
   $("aiCut").onclick = aiRemoveBg;
   $("bgTol").oninput = () => { state.aiMask = null; clearTimeout(tolTimer); tolTimer = setTimeout(() => { processFull(); refresh(); }, 120); };
   $("faceLeft").onchange = () => refresh();
+  $("rigOn").onchange = () => { drawCutPreview(); refresh(); };
   $("markEyes").onclick = () => {
     if (!state.cut) { setStatus("Hãy chọn ảnh nhân vật trước.", true); return; }
     state.eyes = []; state.pickingEyes = true; $("cutPreview").style.cursor = "crosshair";
