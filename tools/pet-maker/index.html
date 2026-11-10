@@ -110,6 +110,32 @@ input[type="color"] { width: 38px; height: 32px; border: 3px solid var(--line); 
 .cut-box canvas { max-width: 100%; max-height: 100%; }
 .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
 [hidden] { display: none !important; }
+.viewer { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.25fr); gap: 22px; align-items: stretch; }
+@media (max-width: 860px) { .viewer { grid-template-columns: minmax(0, 1fr); } }
+.vcard { background: var(--panel); border: 4px solid var(--line); box-shadow: 0 6px 0 var(--soft); padding: 22px 24px 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.vhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.vhead .eyebrow { font-size: 13px; }
+.vhead h2 { font-family: var(--font-display); font-weight: 700; font-size: 30px; margin: 2px 0 0; color: var(--ink); }
+.fr-badge { background: var(--soft); color: var(--ink); font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .08em; padding: 4px 10px; white-space: nowrap; }
+.fr-badge::before { content: "▶ "; color: var(--accent); }
+.vstage { position: relative; background: linear-gradient(180deg, color-mix(in srgb, var(--stage) 50%, var(--panel)), var(--stage)); aspect-ratio: 1 / 1; display: grid; place-items: center; }
+.vstage::before, .vstage::after, .vstage i::before, .vstage i::after { content: ""; position: absolute; width: 6px; height: 6px; background: var(--accent); opacity: .35; }
+.vstage::before { top: 6px; left: 6px; } .vstage::after { top: 6px; right: 6px; } .vstage i::before { bottom: 6px; left: 6px; } .vstage i::after { bottom: 6px; right: 6px; }
+.vstage canvas { width: min(62%, 300px); height: auto; image-rendering: pixelated; }
+.vdesc { margin: 0; color: var(--muted); font-size: 15px; }
+.vstats { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--soft); padding-top: 12px; text-align: center; }
+.vstats span { display: block; font-family: var(--font-display); font-size: 12px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+.vstats b { font-size: 17px; color: var(--ink); }
+.agrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 560px) { .agrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .acard { flex-direction: column; align-items: flex-start; } .acard[aria-pressed="true"]::after { top: 10px; transform: none; } }
+.acard { position: relative; background: var(--panel); border: 3px solid var(--line); box-shadow: 0 5px 0 var(--soft); display: flex; align-items: center; gap: 12px; padding: 12px; min-height: 120px; text-align: left; cursor: pointer; color: var(--text); font: inherit; min-width: 0; }
+.acard:hover { transform: translateY(-2px); }
+.acard[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--panel)); }
+.acard[aria-pressed="true"]::after { content: "✓"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.acard > div { padding-right: 22px; min-width: 0; }
+.acard canvas { width: 64px; height: 69px; flex: none; background: var(--stage); image-rendering: pixelated; }
+.acard .an { font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink); line-height: 1.1; }
+.acard .am { display: block; font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
 .ai { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; background: var(--panel); border: 3px solid var(--line); box-shadow: var(--shadow); padding: 16px 18px; }
 @media (max-width: 640px) { .ai { grid-template-columns: minmax(0, 1fr); } }
 .ai h2 { font-family: var(--font-display); font-weight: 700; font-size: 22px; margin: 4px 0 4px; color: var(--ink); }
@@ -209,7 +235,6 @@ ol.how b { color: var(--text); font-weight: 600; }
     <section class="panel" aria-label="Xem trước">
       <h2 class="step-title">Xem trước</h2>
       <div class="stage"><span class="tag">★ XEM THỬ</span><canvas id="preview" width="384" height="416" aria-label="Pet đang chuyển động"></canvas></div>
-      <div class="chips" id="chips" role="group" aria-label="Chọn động tác"></div>
       <button class="btn primary" id="export" type="button">Tải gói pet (.zip)</button>
       <div class="status" id="status" role="status"></div>
       <ol class="how">
@@ -223,6 +248,22 @@ ol.how b { color: var(--text); font-weight: 600; }
       </details>
     </section>
   </div>
+  <section class="viewer" aria-label="Xem từng động tác">
+    <div class="vcard">
+      <div class="vhead">
+        <div><div class="eyebrow">Động tác</div><h2 id="vTitle">Đứng chơi</h2></div>
+        <span class="fr-badge" id="vBadge">6 KHUNG</span>
+      </div>
+      <div class="vstage"><i></i><canvas id="vCanvas" width="192" height="208" aria-label="Động tác đang chọn"></canvas></div>
+      <p class="vdesc" id="vDesc"></p>
+      <div class="vstats">
+        <div><span>Hàng</span><b id="vRow">0</b></div>
+        <div><span>Khung</span><b id="vFrames">6</b></div>
+        <div><span>Vòng lặp</span><b id="vLoop">0ms</b></div>
+      </div>
+    </div>
+    <div class="agrid" id="chips" role="group" aria-label="Chọn động tác"></div>
+  </section>
   <section class="ai" aria-labelledby="aiTitle">
     <div>
       <span class="badge">STUDIO AI</span>
@@ -239,15 +280,15 @@ ol.how b { color: var(--text); font-weight: 600; }
   const FW = 192, FH = 208, COLS = 8;
   // Rows follow OpenPets' 8x9 V1 atlas: idle, run-right, run-left, waving, jumping, failed, waiting, running, review.
   const STATES = [
-    { id: "idle", label: "Đứng chơi", hint: "rảnh", frames: 6, ms: 5500 },
-    { id: "run-right", label: "Chạy phải", hint: "kéo", frames: 8, ms: 1060 },
-    { id: "run-left", label: "Chạy trái", hint: "kéo", frames: 8, ms: 1060 },
-    { id: "waving", label: "Vẫy tay", hint: "chào", frames: 4, ms: 700 },
-    { id: "jumping", label: "Nhảy", hint: "xong việc", frames: 5, ms: 840 },
-    { id: "failed", label: "Buồn", hint: "lỗi", frames: 8, ms: 1220 },
-    { id: "waiting", label: "Chờ", hint: "nhắc nhở", frames: 6, ms: 1010 },
-    { id: "running", label: "Làm việc", hint: "bận", frames: 6, ms: 820 },
-    { id: "review", label: "Suy nghĩ", hint: "đọc", frames: 6, ms: 1030 },
+    { id: "idle", label: "Đứng chơi", hint: "rảnh", frames: 6, ms: 5500, desc: "Thở nhẹ và chớp mắt khi pet đang rảnh." },
+    { id: "run-right", label: "Chạy phải", hint: "kéo", frames: 8, ms: 1060, desc: "Chạy sang phải khi bạn kéo pet hoặc pet tự đi dạo." },
+    { id: "run-left", label: "Chạy trái", hint: "kéo", frames: 8, ms: 1060, desc: "Chạy sang trái khi bạn kéo pet hoặc pet tự đi dạo." },
+    { id: "waving", label: "Vẫy tay", hint: "chào", frames: 4, ms: 700, desc: "Vẫy tay chào khi bạn bấm vào pet hoặc mở máy." },
+    { id: "jumping", label: "Nhảy", hint: "xong việc", frames: 5, ms: 840, desc: "Nhảy mừng khi xong việc, ví dụ đã uống nước." },
+    { id: "failed", label: "Buồn", hint: "lỗi", frames: 8, ms: 1220, desc: "Ngã buồn khi có lỗi hoặc bạn bỏ lỡ lời nhắc." },
+    { id: "waiting", label: "Chờ", hint: "nhắc nhở", frames: 6, ms: 1010, desc: "Đứng chờ, dùng khi pet nhắc uống nước hay uống thuốc." },
+    { id: "running", label: "Làm việc", hint: "bận", frames: 6, ms: 820, desc: "Gõ máy tính khi đang bận làm việc." },
+    { id: "review", label: "Suy nghĩ", hint: "đọc", frames: 6, ms: 1030, desc: "Đọc sách, suy nghĩ khi đang xem lại." },
   ];
   const BODIES = [
     { id: "boy", label: "Bé trai", kind: "human", hair: "short" },
@@ -601,6 +642,8 @@ ol.how b { color: var(--text); font-weight: 600; }
       tri(s00, s10, s11, pts[i00], pts[i10], pts[i11]);
       tri(s00, s11, s01, pts[i00], pts[i11], pts[i01]);
     }
+    // patch the faint see-through seams between triangles by stacking the result on itself
+    g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(rigC, 0, 0); g.drawImage(rigC, 0, 0);
     g0.drawImage(rigC, -OX, -OY);
   }
 
@@ -897,15 +940,21 @@ ol.how b { color: var(--text); font-weight: 600; }
     bodiesEl.append(btn);
   });
   const chips = $("chips");
-  STATES.forEach((s) => {
-    const btn = document.createElement("button"); btn.type = "button"; btn.className = "chip"; btn.dataset.id = s.id;
-    btn.innerHTML = `${s.label} <span class="k">${s.hint}</span>`;
+  STATES.forEach((s, row) => {
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "acard"; btn.dataset.id = s.id;
+    const cv = document.createElement("canvas"); cv.width = FW; cv.height = FH;
+    const txt = document.createElement("div");
+    txt.innerHTML = `<div class="an">${s.label}</div><span class="am">Hàng ${row} · ${s.frames} khung</span>`;
+    btn.append(cv, txt);
     btn.onclick = () => { state.anim = s.id; startAt = performance.now(); syncPressed(); };
     chips.append(btn);
   });
   function syncPressed() {
     bodiesEl.querySelectorAll(".body-opt").forEach((el) => el.setAttribute("aria-pressed", String(el.dataset.id === state.body)));
-    chips.querySelectorAll(".chip").forEach((el) => el.setAttribute("aria-pressed", String(el.dataset.id === state.anim)));
+    chips.querySelectorAll(".acard").forEach((el) => el.setAttribute("aria-pressed", String(el.dataset.id === state.anim)));
+    const row = STATES.findIndex((x) => x.id === state.anim), s = STATES[row];
+    $("vTitle").textContent = s.label; $("vBadge").textContent = `${s.frames} KHUNG`; $("vDesc").textContent = s.desc;
+    $("vRow").textContent = row; $("vFrames").textContent = s.frames; $("vLoop").textContent = `${s.ms}ms`;
   }
   function renderThumbs() {
     bodiesEl.querySelectorAll("canvas").forEach((cv) => { const g = cv.getContext("2d"); g.clearRect(0, 0, FW, FH); drawFrame(g, cv.parentElement.dataset.id, "idle", 0, 6); });
@@ -922,10 +971,17 @@ ol.how b { color: var(--text); font-weight: 600; }
     const i = reduce ? 0 : Math.floor(((now - startAt) % s.ms) / (s.ms / s.frames));
     pg.setTransform(1, 0, 0, 1, 0, 0); pg.clearRect(0, 0, prev.width, prev.height); pg.scale(2, 2);
     drawFrame(pg, state.body, s.id, i, s.frames);
+    // big viewer and the 9 cards copy frames from the rendered spritesheet
+    const sheet = $("sheet"), row = STATES.indexOf(s);
+    const vg = $("vCanvas").getContext("2d"); vg.clearRect(0, 0, FW, FH); vg.drawImage(sheet, i * FW, row * FH, FW, FH, 0, 0, FW, FH);
+    chips.querySelectorAll("canvas").forEach((cv, r) => {
+      const st = STATES[r], k = reduce ? 0 : Math.floor(((now - startAt) % st.ms) / (st.ms / st.frames));
+      const cg = cv.getContext("2d"); cg.clearRect(0, 0, FW, FH); cg.drawImage(sheet, k * FW, r * FH, FW, FH, 0, 0, FW, FH);
+    });
     requestAnimationFrame(tick);
   }
   let pending = 0;
-  function refreshSoon() { if (!pending) pending = requestAnimationFrame(() => { pending = 0; renderThumbs(); }); }
+  function refreshSoon() { if (!pending) pending = requestAnimationFrame(() => { pending = 0; renderThumbs(); renderSheet($("sheet")); }); }
   function refresh() { syncPressed(); renderThumbs(); renderSheet($("sheet")); }
   ["cOutfit", "cHair", "cSkin"].forEach((id) => $(id).addEventListener("input", refresh));
   $("artStyle").addEventListener("change", refresh);
