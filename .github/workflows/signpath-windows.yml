@@ -75,6 +75,7 @@ jobs:
           name: unsigned-openpets-app-exe
           path: apps/desktop/dist-electron/win-unpacked/openpets.exe
           if-no-files-found: error
+          retention-days: 3
 
       - name: Submit app executable signing request
         uses: signpath/github-action-submit-signing-request@v2
@@ -116,6 +117,7 @@ jobs:
           name: unsigned-openpets-windows-installer
           path: ${{ steps.locate-installer.outputs.installer_path }}
           if-no-files-found: error
+          retention-days: 3
 
       - name: Submit installer signing request
         uses: signpath/github-action-submit-signing-request@v2
@@ -160,3 +162,4 @@ jobs:
           name: signed-openpets-windows-x64
           path: signed-release/*
           if-no-files-found: error
+          retention-days: 3

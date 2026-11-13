@@ -84,3 +84,4 @@ jobs:
           name: openpets-windows-store-appx
           path: apps/desktop/dist-electron/KenPets-*-win-x64.appx
           if-no-files-found: error
+          retention-days: 3
