@@ -221,6 +221,7 @@ ol.how b { color: var(--text); font-weight: 600; }
           </div>
           <label class="f" for="zoom">Phóng to <input type="range" id="zoom" min="1" max="4" step="0.01" value="1.3"></label>
           <label class="f" for="rot">Xoay <input type="range" id="rot" min="-45" max="45" step="1" value="0"></label>
+          <label class="check"><input type="checkbox" id="toonFace" checked> 🎨 Vẽ hoá mặt (giống tranh vẽ, có má hồng)</label>
           <button class="btn" id="clearFace" type="button">Dùng mặt hoạt hình</button>
         </div>
       </div>
@@ -398,7 +399,7 @@ ol.how b { color: var(--text); font-weight: 600; }
       if (body.hair === "short") { g.beginPath(); g.ellipse(-14, -R - 2, 14, 8, -0.4, 0, 7); g.ellipse(10, -R - 4, 12, 7, 0.3, 0, 7); g.fill(); }
       else { g.fillStyle = c.outfit; g.beginPath(); g.arc(R * 0.62, -R * 0.78, 9, 0, 7); g.fill(); g.beginPath(); g.arc(R * 0.62 + 12, -R * 0.78 - 4, 7, 0, 7); g.fill(); }
       g.fillStyle = shade(c.hair, 0.12); g.beginPath(); g.ellipse(-R * 0.45, -R * 0.62, 12, 6, -0.5, 0, 7); g.fill();
-      g.fillStyle = "#ffffff"; g.beginPath(); g.arc(0, 2, R - 1, 0, 7); g.fill();
+      g.fillStyle = state.face && state.faceSkin ? state.faceSkin : "#ffffff"; g.beginPath(); g.arc(0, 2, R - 1, 0, 7); g.fill();
       drawFace(g, R - 3, p, c);
       g.translate(0, 2);
     } else {
@@ -415,7 +416,7 @@ ol.how b { color: var(--text); font-weight: 600; }
       if (body.ears === "dog") {
         for (const sx of [-1, 1]) { g.save(); g.translate(sx * (R - 6), -R * 0.35); g.rotate(sx * 0.35); g.fillStyle = ear; g.beginPath(); g.ellipse(0, 22, 14, 30, 0, 0, 7); g.fill(); g.restore(); }
       }
-      g.fillStyle = "#ffffff"; g.beginPath(); g.arc(0, 6, 40, 0, 7); g.fill();
+      g.fillStyle = state.face && state.faceSkin ? state.faceSkin : "#ffffff"; g.beginPath(); g.arc(0, 6, 40, 0, 7); g.fill();
       g.save(); g.translate(0, 6); drawFace(g, 37, p, c); g.restore();
       if (body.ears === "cat") {
         g.strokeStyle = shade(fur, -0.25); g.lineWidth = 2; g.lineCap = "round";
@@ -770,7 +771,7 @@ ol.how b { color: var(--text); font-weight: 600; }
       cg.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--muted");
       cg.font = "500 22px 'Be Vietnam Pro', sans-serif"; cg.textAlign = "center";
       cg.fillText("Chưa có ảnh", S / 2, S / 2 - 6); cg.fillText("đang dùng mặt hoạt hình", S / 2, S / 2 + 24);
-      state.face = null; return;
+      state.face = null; state.faceSkin = null; return;
     }
     const img = state.img, base = S / Math.min(img.width, img.height), sc = base * state.zoom;
     cg.save(); cg.translate(S / 2 + state.panX, S / 2 + state.panY); cg.rotate((state.rot * Math.PI) / 180);
@@ -783,7 +784,67 @@ ol.how b { color: var(--text); font-weight: 600; }
     const fg = fc.getContext("2d"), k = F / (S * 0.84);
     fg.translate(F / 2, F / 2); fg.scale(k, k); fg.translate(state.panX, state.panY); fg.rotate((state.rot * Math.PI) / 180);
     fg.drawImage(img, (-img.width * sc) / 2, (-img.height * sc) / 2, img.width * sc, img.height * sc);
-    state.face = fc;
+    state.faceRaw = fc;
+    state.face = $("toonFace").checked ? toonFace(fc) : fc;
+  }
+  // Turn the photo face into a drawn look: smooth skin, a few flat colours, ink lines, soft blush.
+  function toonFace(src) {
+    const N = 112, c = document.createElement("canvas"); c.width = c.height = N;
+    const g = c.getContext("2d", { willReadFrequently: true }); g.imageSmoothingQuality = "high"; g.drawImage(src, 0, 0, N, N);
+    let d = g.getImageData(0, 0, N, N), a = d.data;
+    // edge-aware smoothing (cheap bilateral): average neighbours with similar colour
+    for (let pass = 0; pass < 3; pass++) {
+      const b = a.slice();
+      for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) {
+        const q = (y * N + x) * 4; let r = 0, gg = 0, bl = 0, w = 0;
+        for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+          const yy = Math.min(N - 1, Math.max(0, y + dy)), xx = Math.min(N - 1, Math.max(0, x + dx)), o = (yy * N + xx) * 4;
+          const diff = Math.abs(b[o] - b[q]) + Math.abs(b[o + 1] - b[q + 1]) + Math.abs(b[o + 2] - b[q + 2]);
+          const ww = diff < 60 ? 1 : diff < 110 ? 0.3 : 0;
+          r += b[o] * ww; gg += b[o + 1] * ww; bl += b[o + 2] * ww; w += ww;
+        }
+        a[q] = r / w; a[q + 1] = gg / w; a[q + 2] = bl / w;
+      }
+    }
+    // ink lines from the luminance gradient (Sobel)
+    const L = new Float32Array(N * N); for (let q = 0; q < N * N; q++) L[q] = 0.3 * a[q * 4] + 0.59 * a[q * 4 + 1] + 0.11 * a[q * 4 + 2];
+    const edge = new Float32Array(N * N);
+    for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) {
+      const at = (dx, dy) => L[(y + dy) * N + x + dx];
+      const gx = at(1, -1) + 2 * at(1, 0) + at(1, 1) - at(-1, -1) - 2 * at(-1, 0) - at(-1, 1);
+      const gy = at(-1, 1) + 2 * at(0, 1) + at(1, 1) - at(-1, -1) - 2 * at(0, -1) - at(1, -1);
+      edge[y * N + x] = Math.hypot(gx, gy);
+    }
+    // flat colours (k-means, 7 tones)
+    g.putImageData(d, 0, 0);
+    const tones = (buildPalette(c, 7) || []).slice(0, 7);
+    if (tones.length) quantize(a, tones);
+    // skin = average of the cheeks area
+    let sr = 0, sg = 0, sb = 0, sn = 0;
+    for (let y = Math.round(N * 0.5); y < N * 0.68; y++) for (const x0 of [0.22, 0.66]) for (let x = Math.round(N * x0); x < N * (x0 + 0.12); x++) { const q = (y * N + x) * 4; sr += a[q]; sg += a[q + 1]; sb += a[q + 2]; sn++; }
+    state.faceSkin = `rgb(${Math.round(sr / sn)},${Math.round(sg / sn)},${Math.round(sb / sn)})`;
+    for (let q = 0; q < N * N; q++) {
+      const e = edge[q]; if (e < 70) continue;
+      if (Math.hypot(q % N + 0.5 - N / 2, ((q / N) | 0) + 0.5 - N / 2) / N > 0.33) continue;
+      const k = Math.min(1, (e - 70) / 110) * 0.85, o = q * 4;
+      a[o] = a[o] * (1 - k) + 40 * k; a[o + 1] = a[o + 1] * (1 - k) + 28 * k; a[o + 2] = a[o + 2] * (1 - k) + 32 * k;
+    }
+    // near the rim, anything that is not skin (photo background, ears, collar) becomes skin
+    const sk = [sr / sn, sg / sn, sb / sn];
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const r = Math.hypot(x + 0.5 - N / 2, (y + 0.5 - N / 2) * 0.92) / N, o = (y * N + x) * 4;
+      if (r > 0.3 && Math.abs(a[o] - sk[0]) + Math.abs(a[o + 1] - sk[1]) + Math.abs(a[o + 2] - sk[2]) > 90 && !(y < N * 0.4 && L[y * N + x] < 90)) { a[o] = sk[0]; a[o + 1] = sk[1]; a[o + 2] = sk[2]; }
+    }
+    // fade the round edge into the head colour so the photo background does not show as a ring
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const r = Math.hypot(x + 0.5 - N / 2, (y + 0.5 - N / 2) * 0.92) / N;
+      if (r > 0.36) a[(y * N + x) * 4 + 3] = Math.round(255 * Math.max(0, 1 - (r - 0.36) / 0.1));
+    }
+    g.putImageData(d, 0, 0);
+    // blush
+    g.fillStyle = "rgba(255,120,140,.28)";
+    for (const sx of [0.27, 0.73]) { g.beginPath(); g.ellipse(N * sx, N * 0.63, N * 0.09, N * 0.05, 0, 0, 7); g.fill(); }
+    return c;
   }
   function loadFile(file) {
     if (!file || !file.type.startsWith("image/")) { setStatus("File này không phải ảnh. Hãy chọn ảnh JPG hoặc PNG.", true); return; }
@@ -806,6 +867,7 @@ ol.how b { color: var(--text); font-weight: 600; }
   box.addEventListener("pointerup", () => { drag = null; refresh(); });
   box.addEventListener("wheel", (e) => { if (!state.img) return; e.preventDefault(); state.zoom = Math.min(4, Math.max(1, state.zoom - e.deltaY * 0.002)); $("zoom").value = state.zoom; renderCrop(); refreshSoon(); }, { passive: false });
   $("zoom").oninput = (e) => { state.zoom = +e.target.value; renderCrop(); refreshSoon(); };
+  $("toonFace").onchange = () => { renderCrop(); refresh(); };
   $("rot").oninput = (e) => { state.rot = +e.target.value; renderCrop(); refreshSoon(); };
   $("clearFace").onclick = () => { state.img = null; renderCrop(); refresh(); setStatus("Đang dùng mặt hoạt hình."); };
 
