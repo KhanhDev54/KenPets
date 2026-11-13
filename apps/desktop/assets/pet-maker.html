@@ -237,6 +237,7 @@ ol.how b { color: var(--text); font-weight: 600; }
       <h2 class="step-title">Kiểu vẽ &amp; tên</h2>
       <label class="f" for="artStyle">Kiểu vẽ
         <select id="artStyle">
+          <option value="chibi">Chibi pixel ✦ đầu to, viền tối, đổ bóng</option>
           <option value="pixel">Pixel art (giống pet trong app)</option>
           <option value="smooth">Mịn, có viền (mặt ảnh rõ hơn)</option>
         </select>
@@ -618,9 +619,11 @@ ol.how b { color: var(--text); font-weight: 600; }
     const C = 18, R = 24, X = (u) => (u - 0.5) * w, Y = (v) => (v - 1) * h;
     const legA = (x) => Math.max(-0.7, Math.min(0.7, x * 0.55));
     const armA = (x) => Math.max(-0.12, Math.min(1.6, (x - 0.15) * 0.6)); // arms folding over the body can not be shown by a flat warp
-    const head = headAngle(p, stateId, i, n);
+    const head = headAngle(p, stateId, i, n), chibi = $("artStyle").value === "chibi";
     const map = (u, v) => {
       let x = X(u), y = Y(v);
+      // chibi: bigger head, grown out from the neck
+      if (chibi) { const wb = 1 - smooth(r.neck - 0.08, r.neck + 0.02, v); if (wb > 0) { const f = 1 + 0.24 * wb; x *= f; y = Y(r.neck) + (y - Y(r.neck)) * f; } }
       // legs swing around each hip joint
       const wl = smooth(r.hip - 0.04, r.hip + 0.06, v);
       if (wl > 0) {
@@ -672,7 +675,8 @@ ol.how b { color: var(--text); font-weight: 600; }
       g.fillStyle = "rgba(140,155,180,.6)"; g.font = "600 15px 'Be Vietnam Pro', sans-serif"; g.textAlign = "center";
       g.fillText("Chưa có ảnh", 96, 104); g.textAlign = "start"; return;
     }
-    const k = Math.min(156 / cut.width, 176 / cut.height), w = cut.width * k, h = cut.height * k;
+    const shrink = $("artStyle").value === "chibi" && state.rig && $("rigOn").checked ? 0.86 : 1;
+    const k = Math.min(156 / cut.width, 176 / cut.height) * shrink, w = cut.width * k, h = cut.height * k;
     let flip = $("faceLeft").checked ? -1 : 1;
     if (stateId === "run-left") flip *= -1;
     let rot = p.tilt + p.lean, sx = 2 - p.squash, sy = p.squash, dy = p.dy;
@@ -687,7 +691,7 @@ ol.how b { color: var(--text); font-weight: 600; }
     const rig = state.rig && $("rigOn").checked ? state.rig : null;
     if (rig) drawRigged(g, cut, w, h, rig, p, stateId, i, n); else g.drawImage(cut, -w / 2, -h, w, h);
     if (p.blink || (stateId === "waiting" && i === 4) || (stateId === "review" && i === 2)) {
-      if (rig) { const a = headAngle(p, stateId, i, n), py = (rig.neck - 1) * h; g.translate(0, py); g.rotate(a); g.translate(0, -py); }
+      if (rig) { const a = headAngle(p, stateId, i, n), py = (rig.neck - 1) * h; g.translate(0, py); g.rotate(a); if ($("artStyle").value === "chibi") g.scale(1.24, 1.24); g.translate(0, -py); }
       drawLids(g, k, w, h);
     }
     g.restore();
@@ -703,10 +707,29 @@ ol.how b { color: var(--text); font-weight: 600; }
     drawFx(g, p.fx);
   }
 
+  // Pixel-artist touches: light from the top-left, a shade on the lower-right, and a "sel-out" outline
+  // (a dark version of the colour next to it instead of flat black).
+  function chibiShade(a, W, H) {
+    const src = a.slice(), op = (x, y) => x >= 0 && y >= 0 && x < W && y < H && src[(y * W + x) * 4 + 3] > 0;
+    const mix = (q, f, t) => { for (let c = 0; c < 3; c++) a[q + c] = Math.round(src[q + c] + (t - src[q + c]) * f); };
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const q = (y * W + x) * 4;
+      if (src[q + 3]) {
+        if (!op(x, y - 1)) mix(q, 0.12, 255);
+        else if (!op(x, y + 1) || !op(x + 1, y) || !op(x, y + 2)) mix(q, 0.2, 20);
+        continue;
+      }
+      let n = null;
+      for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) if (op(x + dx, y + dy)) { n = ((y + dy) * W + x + dx) * 4; break; }
+      if (n === null) continue;
+      a[q] = Math.round(src[n] * 0.22 + 10); a[q + 1] = Math.round(src[n + 1] * 0.22 + 12); a[q + 2] = Math.round(src[n + 2] * 0.22 + 24); a[q + 3] = 255;
+    }
+  }
+
   function drawFrame(g, bodyId, stateId, i, n) {
     const rg = rawC.getContext("2d"); rg.setTransform(1, 0, 0, 1, 0, 0); rg.clearRect(0, 0, FW, FH);
     if (state.mode === "photo") drawPhotoFrame(rg, stateId, i, n); else drawFrameRaw(rg, bodyId, stateId, i, n);
-    const pixel = $("artStyle").value === "pixel";
+    const style = $("artStyle").value, pixel = style !== "smooth", chibi = style === "chibi";
     let src = rawC;
     if (pixel) {
       const tg = tinyC.getContext("2d", { willReadFrequently: true }); tg.clearRect(0, 0, tinyC.width, tinyC.height);
@@ -717,6 +740,7 @@ ol.how b { color: var(--text); font-weight: 600; }
         const al = a[k + 3] / 255; a[k] = Math.min(255, a[k] / al); a[k + 1] = Math.min(255, a[k + 1] / al); a[k + 2] = Math.min(255, a[k + 2] / al); a[k + 3] = 255;
       }
       if (state.mode === "photo" && state.palette) quantize(a, pose(stateId, i, n).sad ? sadPalette(state.palette) : state.palette);
+      if (chibi) chibiShade(a, tinyC.width, tinyC.height);
       tg.putImageData(d, 0, 0);
       rg.clearRect(0, 0, FW, FH); rg.imageSmoothingEnabled = false; rg.drawImage(tinyC, 0, 0, FW, FH);
       src = rawC;
@@ -725,8 +749,8 @@ ol.how b { color: var(--text); font-weight: 600; }
     const sg = silC.getContext("2d"); sg.globalCompositeOperation = "source-over"; sg.clearRect(0, 0, FW, FH); sg.drawImage(src, 0, 0);
     sg.globalCompositeOperation = "source-in"; sg.fillStyle = state.mode === "photo" ? "#ffffff" : OUTLINE; sg.fillRect(0, 0, FW, FH); sg.globalCompositeOperation = "source-over";
     const og = outC.getContext("2d"); og.clearRect(0, 0, FW, FH); og.imageSmoothingEnabled = false;
-    const w = pixel ? PX : 3;
-    for (const [ox, oy] of [[-w, 0], [w, 0], [0, -w], [0, w], [-w, -w], [w, -w], [-w, w], [w, w]]) og.drawImage(silC, ox, oy);
+    const w = chibi ? 0 : pixel ? PX : 3;
+    if (w) for (const [ox, oy] of [[-w, 0], [w, 0], [0, -w], [0, w], [-w, -w], [w, -w], [-w, w], [w, w]]) og.drawImage(silC, ox, oy);
     og.drawImage(src, 0, 0);
     if (state.mode === "photo") {
       // ground shadow sits outside the white sticker outline
@@ -946,7 +970,7 @@ ol.how b { color: var(--text); font-weight: 600; }
     state.mode = btn.dataset.mode;
     document.querySelectorAll(".mode").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
     $("photoMode").hidden = state.mode !== "photo"; $("faceMode").hidden = state.mode === "photo";
-    $("artStyle").value = state.mode === "photo" ? "smooth" : "pixel";
+    $("artStyle").value = "chibi";
     drawCutPreview(); refresh();
   });
 
