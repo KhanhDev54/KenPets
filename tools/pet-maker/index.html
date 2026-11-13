@@ -222,6 +222,12 @@ ol.how b { color: var(--text); font-weight: 600; }
           <label class="f" for="zoom">Phóng to <input type="range" id="zoom" min="1" max="4" step="0.01" value="1.3"></label>
           <label class="f" for="rot">Xoay <input type="range" id="rot" min="-45" max="45" step="1" value="0"></label>
           <label class="check"><input type="checkbox" id="toonFace" checked> 🎨 Vẽ hoá mặt (giống tranh vẽ, có má hồng)</label>
+          <div style="display:flex;flex-direction:column;gap:6px;border:2px dashed var(--soft);padding:8px">
+            <button class="btn" id="p2cPick" type="button">🤖 AI vẽ mặt hoạt hình…</button>
+            <input type="file" id="p2cFile" accept=".onnx" hidden>
+            <small id="p2cInfo" style="color:var(--muted);font-size:12px">Thử nghiệm, dùng mô hình photo2cartoon (MIT). Chọn file photo2cartoon_weights.onnx một lần, xưởng sẽ nhớ. Chạy trên máy bạn, cần mạng lần đầu để tải bộ chạy AI.</small>
+            <label class="check"><input type="checkbox" id="p2cOn" disabled> Dùng mặt do AI vẽ</label>
+          </div>
           <button class="btn" id="clearFace" type="button">Dùng mặt hoạt hình</button>
         </div>
       </div>
@@ -788,6 +794,65 @@ ol.how b { color: var(--text); font-weight: 600; }
     state.faceRaw = fc;
     state.face = $("toonFace").checked ? toonFace(fc) : fc;
     if (state.mode === "photo") composeFace();
+    if ($("p2cOn").checked) scheduleP2C();
+  }
+  // ---------- AI face (photo2cartoon ONNX via onnxruntime-web) ----------
+  const ORT = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/";
+  let p2cSession = null, p2cTimer = 0, p2cBusy = false;
+  const idb = () => new Promise((res, rej) => { const r = indexedDB.open("kenpets-studio", 1); r.onupgradeneeded = () => r.result.createObjectStore("models"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  async function idbGet(k) { const db = await idb(); return new Promise((res) => { const q = db.transaction("models").objectStore("models").get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); }
+  async function idbPut(k, v) { const db = await idb(); return new Promise((res) => { const t = db.transaction("models", "readwrite"); t.objectStore("models").put(v, k); t.oncomplete = () => res(true); t.onerror = () => res(false); }); }
+  function loadOrt() {
+    if (window.ort) return Promise.resolve(window.ort);
+    return new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = ORT + "ort.min.js"; sc.onload = () => { window.ort.env.wasm.wasmPaths = ORT; window.ort.env.wasm.numThreads = 1; res(window.ort); }; sc.onerror = () => rej(new Error("Không tải được bộ chạy AI (cần mạng).")); document.head.append(sc); });
+  }
+  async function initP2C(buf) {
+    $("p2cInfo").textContent = "Đang nạp mô hình AI…";
+    const ort = await loadOrt();
+    p2cSession = await ort.InferenceSession.create(new Uint8Array(buf), { executionProviders: ["wasm"] });
+    $("p2cOn").disabled = false; $("p2cOn").checked = true;
+    $("p2cInfo").textContent = `Đã có mô hình AI (${(buf.byteLength / 1048576).toFixed(1)} MB). Mặt sẽ được AI vẽ lại sau khi bạn căn xong.`;
+    scheduleP2C();
+  }
+  $("p2cPick").onclick = () => $("p2cFile").click();
+  $("p2cFile").onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try { const buf = await f.arrayBuffer(); await initP2C(buf); idbPut("p2c", buf).catch(() => {}); }
+    catch (err) { console.warn(err); $("p2cInfo").textContent = "Không nạp được mô hình: " + (err && err.message ? err.message : err); }
+  };
+  $("p2cOn").onchange = () => { renderCrop(); refresh(); };
+  idbGet("p2c").then((buf) => { if (buf) initP2C(buf).catch((err) => { console.warn(err); $("p2cInfo").textContent = "Có mô hình đã lưu nhưng chưa nạp được (cần mạng lần đầu)."; }); }).catch(() => {});
+  function scheduleP2C() { clearTimeout(p2cTimer); p2cTimer = setTimeout(runP2C, 350); }
+  async function runP2C() {
+    if (!p2cSession || !state.faceRaw || !$("p2cOn").checked) return;
+    if (p2cBusy) { scheduleP2C(); return; }
+    p2cBusy = true;
+    try {
+      const S = 256, c = document.createElement("canvas"); c.width = c.height = S;
+      const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(state.faceRaw, 0, 0, S, S);
+      const px = g.getImageData(0, 0, S, S).data, mask = new Float32Array(S * S), inp = new Float32Array(3 * S * S);
+      // the official pipeline segments the head; here a soft oval stands in for that mask
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const r = Math.hypot((x + 0.5 - S / 2) / (S * 0.46), (y + 0.5 - S / 2) / (S * 0.5)), m = Math.max(0, Math.min(1, (1 - r) / 0.06));
+        const q = y * S + x; mask[q] = m;
+        for (let ch = 0; ch < 3; ch++) inp[ch * S * S + q] = (px[q * 4 + ch] * m + 255 * (1 - m)) / 127.5 - 1;
+      }
+      const out = await p2cSession.run({ input: new window.ort.Tensor("float32", inp, [1, 3, S, S]) });
+      const o = (out.output || Object.values(out)[0]).data;
+      const res = g.createImageData(S, S);
+      for (let q = 0; q < S * S; q++) {
+        for (let ch = 0; ch < 3; ch++) res.data[q * 4 + ch] = Math.max(0, Math.min(255, (o[ch * S * S + q] + 1) * 127.5));
+        res.data[q * 4 + 3] = Math.round(mask[q] * 255);
+      }
+      g.putImageData(res, 0, 0);
+      let sr = 0, sg = 0, sb = 0, n = 0;
+      for (let y = Math.round(S * 0.55); y < S * 0.68; y++) for (const x0 of [0.25, 0.63]) for (let x = Math.round(S * x0); x < S * (x0 + 0.1); x++) { const q = (y * S + x) * 4; sr += res.data[q]; sg += res.data[q + 1]; sb += res.data[q + 2]; n++; }
+      state.faceSkin = `rgb(${Math.round(sr / n)},${Math.round(sg / n)},${Math.round(sb / n)})`;
+      state.face = c;
+      if (state.mode === "photo") composeFace();
+      refresh(); setStatus("AI đã vẽ lại mặt.");
+    } catch (err) { console.warn(err); setStatus("AI chưa vẽ được mặt: " + (err && err.message ? err.message : err), true); }
+    finally { p2cBusy = false; }
   }
   // Turn the photo face into a drawn look: smooth skin, a few flat colours, ink lines, soft blush.
   function toonFace(src) {
